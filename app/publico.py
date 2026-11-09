@@ -1,25 +1,17 @@
 """Cardápio público de cada restaurante: SEM login, só o que o cliente final pode ver.
 Nunca devolve custo, margem, estoque nem identificadores internos. Os preços sempre vêm do banco."""
-import os
 import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
-from .core import get_conn, resp
+from .core import get_conn, ip_do_cliente, resp
 from .pedidos import ItemPedidoIn, criar_pedido, telefone
 
 router = APIRouter(prefix="/publico")
 _TENTATIVAS: dict = {}
 MAX_PEDIDOS, JANELA = 10, 3600  # por IP e por restaurante, a cada hora
-
-
-def _ip(req: Request) -> str:
-    # Atrás de proxy/balanceador, o IP real vem em X-Forwarded-For. Só confie nele se o seu proxy o define.
-    if os.environ.get("STOCKPULSE_PROXY") == "1" and req.headers.get("x-forwarded-for"):
-        return req.headers["x-forwarded-for"].split(",")[0].strip()
-    return req.client.host if req.client else "?"
 
 
 def limitar(chave) -> None:
@@ -63,7 +55,7 @@ class PedidoPublicoIn(BaseModel):
 @router.post("/{slug}/pedidos")
 def fazer_pedido(slug: str, p: PedidoPublicoIn, req: Request, conn=Depends(get_conn)):
     e = _loja(conn, slug)
-    limitar((_ip(req), slug))
+    limitar((ip_do_cliente(req), slug))
     r = criar_pedido(conn, e["id"], p.cliente_nome, p.cliente_telefone, "Cardápio", "A combinar", p.observacao, p.itens)
     conn.execute("insert into auditoria (estabelecimento_id, usuario_nome, perfil, acao) values (%s, 'cardápio', 'cliente', %s)", (e["id"], f"pedido #{r['numero']} recebido pelo cardápio"))
     conn.commit()

@@ -37,14 +37,14 @@ def test_email_nao_confirmado(monkeypatch):
 
 def test_chave_invalida_nao_vira_senha_errada(monkeypatch):
     e = tentar(monkeypatch, 401, {"message": "Invalid API key", "hint": "..."})
-    assert e.status_code == 500 and "SUPABASE_ANON_KEY" in e.detail
+    assert e.status_code == 503 and "SUPABASE_ANON_KEY" not in e.detail  # o cliente não vê detalhes de configuração (ficam no log)
 
 
 def test_outros_erros_mostram_a_causa(monkeypatch):
     e = tentar(monkeypatch, 422, {"error_code": "validation_failed", "msg": "Unable to validate email address"})
-    assert e.status_code == 503 and "validation_failed" in e.detail
+    assert e.status_code == 503 and "validation_failed" not in e.detail
 
 
 def test_sucesso(monkeypatch):
     monkeypatch.setattr(auth.httpx, "post", lambda *a, **k: R(200, {"access_token": "t", "expires_in": 3600}))
-    assert auth.entrar("a@b.com", "x") == {"access_token": "t", "expires_in": 3600}
+    assert auth.entrar("a@b.com", "x") == {"access_token": "t", "refresh_token": None, "expires_in": 3600}

@@ -325,7 +325,7 @@ def recarregar():
 def test_documentacao_desligada_em_producao(monkeypatch):
     monkeypatch.setenv("STOCKPULSE_ENV", "producao")
     t = TestClient(recarregar())
-    assert t.get("/docs").status_code == 404 and t.get("/openapi.json").status_code == 404 and t.get("/").json()["versao"] == "0.4.0"
+    assert t.get("/docs").status_code == 404 and t.get("/openapi.json").status_code == 404 and t.get("/").json()["versao"] == "0.5.0"
     monkeypatch.delenv("STOCKPULSE_ENV"); recarregar()
     assert TestClient(recarregar()).get("/docs").status_code == 200
 

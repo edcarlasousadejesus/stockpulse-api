@@ -1,12 +1,13 @@
 """Infraestrutura: conexão com o PostgreSQL, contexto do usuário, permissões e resposta JSON."""
 import json
+import logging
 import os
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from fastapi.security import HTTPBearer
 from psycopg.rows import dict_row
@@ -16,6 +17,7 @@ from pydantic import BaseModel
 from . import auth
 
 PERFIS = {"administrador", "gerente", "operador"}
+log = logging.getLogger("stockpulse")
 _pool: ConnectionPool | None = None
 bearer = HTTPBearer(auto_error=False, description="Token de acesso obtido em POST /auth/entrar")
 
@@ -33,8 +35,30 @@ def pool() -> ConnectionPool:
 
 
 def get_conn():
-    with pool().connection() as conn:
+    """Conexão do pedido. Falha de configuração ou de rede vira 503 com mensagem clara (e log no servidor), não um 500 sem explicação."""
+    try:
+        cm = pool().connection(timeout=8)
+        conn = cm.__enter__()
+    except RuntimeError as e:
+        log.error("configuração do banco ausente: %s", e)
+        raise HTTPException(503, "servidor sem configuração de banco de dados (DATABASE_URL)")
+    except Exception as e:
+        log.error("banco de dados indisponível: %s: %s", type(e).__name__, str(e)[:200])
+        raise HTTPException(503, "banco de dados indisponível")
+    try:
         yield conn
+    except BaseException as e:
+        cm.__exit__(type(e), e, e.__traceback__)
+        raise
+    else:
+        cm.__exit__(None, None, None)
+
+
+def ip_do_cliente(req: Request) -> str:
+    # Atrás de proxy, o IP real vem em X-Forwarded-For. Só confie nele se o seu proxy o define (STOCKPULSE_PROXY=1).
+    if os.environ.get("STOCKPULSE_PROXY") == "1" and req.headers.get("x-forwarded-for"):
+        return req.headers["x-forwarded-for"].split(",")[0].strip()
+    return req.client.host if req.client else "?"
 
 
 def fuso() -> str:
@@ -95,6 +119,12 @@ def contexto(
 def so_gestao(ctx: Ctx = Depends(contexto)) -> Ctx:
     if ctx.perfil == "operador":
         raise HTTPException(403, "apenas gerente ou administrador")
+    return ctx
+
+
+def so_admin(ctx: Ctx = Depends(contexto)) -> Ctx:
+    if ctx.perfil != "administrador":
+        raise HTTPException(403, "apenas administrador")
     return ctx
 
 

@@ -8,39 +8,39 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import auth, calc, config, operacao, pedidos, publico
-from .core import Ctx, auditar, contexto, get_conn, resp, so_gestao
+from . import auth, calc, config, contas, operacao, pedidos, publico
+from .core import Ctx, auditar, contexto, get_conn, log, pool, resp, so_gestao
 
 PRODUCAO = os.environ.get("STOCKPULSE_ENV") == "producao"
 # Em produção a documentação interativa fica desligada (ela mostra toda a superfície da API)
-app = FastAPI(title="StockPulse API", version="0.4.0", docs_url=None if PRODUCAO else "/docs",
+app = FastAPI(title="StockPulse API", version="0.5.0", docs_url=None if PRODUCAO else "/docs",
               redoc_url=None if PRODUCAO else "/redoc", openapi_url=None if PRODUCAO else "/openapi.json")
 ORIGENS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
 if ORIGENS:  # endereços do seu site que podem chamar a API pelo navegador
     app.add_middleware(CORSMiddleware, allow_origins=ORIGENS, allow_methods=["GET", "POST", "PUT"], allow_headers=["Authorization", "Content-Type"], allow_credentials=False)
-for r in (operacao.router, pedidos.router, config.router, publico.router):
+for r in (contas.router, operacao.router, pedidos.router, config.router, publico.router):
     app.include_router(r)
 
 
 @app.get("/")
 def raiz():
-    return {"servico": "StockPulse API", "versao": "0.4.0"}
+    return {"servico": "StockPulse API", "versao": "0.5.0"}
 
 
-class LoginIn(BaseModel):
-    email: str = Field(min_length=3)
-    senha: str = Field(min_length=1)
-
-
-@app.post("/auth/entrar")
-def entrar(b: LoginIn, conn=Depends(get_conn)):
-    """Login com e-mail e senha cadastrados no Supabase Auth. Devolve o token para as demais rotas."""
-    t = auth.entrar(b.email, b.senha)
-    u = auth.usuario_do_token(t["access_token"])
-    row = conn.execute("select nome, perfil::text perfil, estabelecimento_id::text estab from usuarios where id = %s", (u["id"],)).fetchone()
-    if row is None:
-        raise HTTPException(403, "usuário sem acesso a nenhum estabelecimento")
-    return resp({**t, "usuario": {"nome": row["nome"], "perfil": row["perfil"], "estabelecimento_id": row["estab"]}})
+@app.get("/saude")
+def saude():
+    """Diagnóstico sem segredos: diz se o banco e a autenticação estão configurados e acessíveis. Use quando o login der erro."""
+    try:
+        with pool().connection(timeout=4) as c:
+            c.execute("select 1")
+        banco = "ok"
+    except RuntimeError:
+        banco = "sem_configuracao"
+    except Exception as e:
+        log.error("saúde: banco indisponível: %s", type(e).__name__)
+        banco = "falha"
+    d = {"api": "ok", "banco": banco, **auth.diagnostico(), "producao": PRODUCAO}
+    return resp(d, 200 if banco == "ok" and d["supabase"] == "ok" else 503)
 
 
 @app.get("/eu")

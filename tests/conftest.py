@@ -55,6 +55,8 @@ def banco():
 
 @pytest.fixture
 def limpo(banco):
+    from app import contas
+    contas.resetar_limites()
     with psycopg.connect(URL, autocommit=True) as c:
         c.execute("truncate estabelecimentos, auth.users restart identity cascade")
         c.execute("insert into estabelecimentos (id, nome, slug) values (%s, 'Loja A', 'loja-a'), (%s, 'Loja B', 'loja-b')", (EST_A, EST_B))
