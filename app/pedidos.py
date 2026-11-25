@@ -95,7 +95,7 @@ def listar_pedidos(status: Optional[Status] = None, dia: Optional[str] = Query(N
 
 
 def _travar(conn, ctx: Ctx, numero: int) -> dict:
-    p = conn.execute("select id, status from pedidos where estabelecimento_id = %s and numero = %s for update", (ctx.estab, numero)).fetchone()
+    p = conn.execute("select id, status, cliente_nome, cliente_telefone from pedidos where estabelecimento_id = %s and numero = %s for update", (ctx.estab, numero)).fetchone()
     if p is None:
         raise HTTPException(404, "pedido não encontrado")
     return p
@@ -120,7 +120,9 @@ def avancar(numero: int, ctx: Ctx = Depends(contexto), conn=Depends(get_conn)):
         conn.execute("update pedidos set status = %s, visto = true where id = %s", (novo, p["id"]))
     auditar(conn, ctx, f"pedido #{numero}: {novo}")
     conn.commit()
-    return resp({"numero": numero, "status": novo, "estoque_negativo": sorted(set(negativos))})
+    from .whatsapp import notificar_status_whatsapp
+    aviso = notificar_status_whatsapp(numero, p["cliente_nome"], p["cliente_telefone"], novo)
+    return resp({"numero": numero, "status": novo, "estoque_negativo": sorted(set(negativos)), "aviso_whatsapp": aviso})
 
 
 @router.post("/pedidos/{numero}/cancelar")

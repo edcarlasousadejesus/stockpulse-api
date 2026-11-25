@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="api-url" content="">
+<title>StockPulse</title>
+<style>
+/* ============================================================
+   RESET & DESIGN TOKENS
+============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0d0a;--bg-panel:#111611;--bg-card:#161d16;--bg-input:#1a221a;
+  --border:#1f2d1f;--green:#39ff6a;--green-dim:#2acc55;--green-glow:rgba(57,255,106,.15);
+  --text:#e8f5e8;--muted:#6b8a6b;--dim:#3d5c3d;--danger:#ff4444;--warn:#ffb347;--info:#4fc3f7;
+  --r:12px;--rs:8px;--shadow:0 4px 24px rgba(0,0,0,.6);
+  --nav-h:64px;--top-h:52px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5}
+input,textarea,select,button{font-family:inherit;font-size:inherit}
+input,textarea,select{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:8px 12px;width:100%;outline:none;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--green-dim)}
+button{cursor:pointer;border:none;border-radius:var(--rs);padding:8px 16px;transition:all .2s}
+.btn{background:var(--green);color:#0a0d0a;font-weight:700}
+.btn:hover{background:#4dff80}
+.btn:disabled{background:var(--dim);color:var(--muted);cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--green-dim);color:var(--text)}
+.btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+.btn-danger:hover{background:rgba(255,68,68,.1)}
+.btn-sm{padding:5px 10px;font-size:12px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+select option{background:var(--bg-card)}
+
+/* ============================================================
+   LAYOUT
+============================================================ */
+#auth{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#app.hidden,#auth.hidden{display:none!important}
+
+/* Top Bar */
+#topbar{height:var(--top-h);background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;position:relative}
+.top-logo{font-size:16px;font-weight:800;color:var(--green);letter-spacing:-.3px;display:flex;align-items:center;gap:6px}
+.top-logo-dot{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.top-role{font-size:11px;color:var(--muted);background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:2px 10px;margin-left:auto}
+#out{background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;padding:5px 12px}
+#out:hover{border-color:var(--danger);color:var(--danger)}
+#al{position:absolute;top:50%;right:60px;transform:translateY(-50%);background:var(--warn);color:#000;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;animation:wig 1s infinite}
+#al.hidden{display:none}
+@keyframes wig{0%,100%{transform:translateY(-50%) rotate(0)}25%{transform:translateY(-50%) rotate(-2deg)}75%{transform:translateY(-50%) rotate(2deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Main scroll area */
+#main{flex:1;overflow-y:auto;padding:16px 16px calc(var(--nav-h)+16px);scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#main::-webkit-scrollbar{width:4px}
+#main::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Bottom Nav */
+#dock{height:var(--nav-h);background:var(--bg-panel);border-top:1px solid var(--border);display:flex;align-items:stretch;flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:9px;font-weight:600;padding:4px 2px;position:relative;text-transform:uppercase;letter-spacing:.3px;transition:color .2s}
+.nav-tab:hover,.nav-tab.act{color:var(--green)}
+.nav-tab.act::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:var(--green);border-radius:2px 2px 0 0}
+.nav-tab .ico{font-size:20px;line-height:1}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--danger);color:#fff;font-size:9px;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
+.nav-badge.hidden{display:none}
+
+/* View container */
+#view{display:block}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.section-title{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--text)}
+
+/* Grid helpers */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:420px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* Stat chips */
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--rs);padding:12px}
+.stat-label{font-size:11px;color:var(--muted)}
+.stat-val{font-size:22px;font-weight:800;color:var(--green)}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Forms */
+.fgroup{margin-bottom:12px}
+.frow{display:flex;gap:8px;align-items:flex-end}
+.frow .fgroup{flex:1;margin:0}
+
+/* Sub-tabs */
+.sub-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.sub-tab{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 12px;font-size:12px}
+.sub-tab.act{background:var(--green-glow);border-color:var(--green-dim);color:var(--green)}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:8px;color:var(--muted);font-size:11px;font-weight:600;border-bottom:1px solid var(--border)}
+.tbl td{padding:8px;border-bottom:1px solid rgba(31,45,31,.5);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(57,255,106,.03)}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(57,255,106,.15);color:var(--green)}
+.badge-warn{background:rgba(255,179,71,.15);color:var(--warn)}
+.badge-danger{background:rgba(255,68,68,.15);color:var(--danger)}
+.badge-blue{background:rgba(79,195,247,.15);color:var(--info)}
+
+/* ============================================================
+   AUTH SCREENS
+============================================================ */
+.auth-box{width:100%;max-width:380px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow),0 0 60px rgba(57,255,106,.05);overflow:hidden}
+.auth-head{background:var(--bg-card);border-bottom:1px solid var(--border);padding:20px;text-align:center}
+.auth-logo{font-size:24px;font-weight:800;color:var(--green)}
+.auth-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.auth-body{padding:20px}
+.auth-tabs{display:flex;margin-bottom:20px}
+.auth-tab{flex:1;padding:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none}
+.auth-tab.act{color:var(--green);border-bottom-color:var(--green)}
+#aCard{min-height:40px}
+.aCard-msg{padding:12px;border-radius:var(--rs);font-size:13px;text-align:center;min-height:0}
+
+/* Password checklist */
+#aCsr{list-style:none;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px}
+#aCsr li{display:flex;align-items:center;gap:4px}
+#aCsr li::before{content:'○';color:var(--dim)}
+#aCsr li.ok::before{content:'●';color:var(--green)}
+
+/* ============================================================
+   KANBAN
+============================================================ */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:600px){.kanban{grid-template-columns:1fr 1fr}}
+.kol{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--rs);padding:10px;min-height:120px}
+.kol-head{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.kol-head .cnt{background:var(--dim);color:var(--muted);border-radius:20px;padding:1px 7px;font-size:10px}
+.kcard{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.kcard:hover{border-color:var(--green-dim)}
+.kcard-num{font-size:11px;color:var(--muted)}
+.kcard-name{font-size:13px;font-weight:600;margin:2px 0}
+.kcard-total{font-size:12px;color:var(--green)}
+.kcard-canal{font-size:10px;color:var(--dim)}
+.kcard-new{border-color:var(--green-dim);animation:glowIn .4s ease}
+@keyframes glowIn{from{box-shadow:0 0 16px var(--green)}to{box-shadow:none}}
+
+/* ============================================================
+   CMV RULER (FIXED)
+============================================================ */
+.ruler-wrap{position:relative;height:28px;background:rgba(255,255,255,.04);border-radius:6px;overflow:visible;margin:8px 0 20px}
+.ruler-track{position:absolute;inset:0;border-radius:6px;overflow:hidden}
+.ruler-fill{height:100%;border-radius:6px;transition:width .6s ease}
+.ruler-mark{position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;z-index:2}
+.ruler-label{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;white-space:nowrap;z-index:3;pointer-events:none}
+.ruler-pct-label{position:absolute;bottom:-18px;font-size:10px;color:var(--muted);white-space:nowrap;transform:translateX(-50%)}
+
+/* ============================================================
+   MODAL
+============================================================ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-bg.hidden{display:none}
+.modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:20px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-close{background:transparent;color:var(--muted);font-size:20px;border:none;line-height:1;padding:4px}
+.modal-close:hover{color:var(--text)}
+
+/* ============================================================
+   CHART CANVAS
+============================================================ */
+.chart-wrap{position:relative;height:160px;width:100%}
+canvas{display:block;width:100%!important}
+
+/* ============================================================
+   CHATBOT FLOAT
+============================================================ */
+#chatBtn{position:fixed;bottom:calc(var(--nav-h)+14px);right:16px;width:48px;height:48px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:none;z-index:150;box-shadow:0 4px 20px rgba(57,255,106,.4);transition:all .2s}
+#chatBtn:hover{background:#4dff80;transform:scale(1.08)}
+#chatBtn .dot{position:absolute;top:4px;right:4px;width:9px;height:9px;background:#fff;border-radius:50%;border:1.5px solid var(--green)}
+#chatPanel{position:fixed;bottom:calc(var(--nav-h)+72px);right:12px;width:min(360px,calc(100vw-24px));height:min(500px,calc(100vh - var(--nav-h) - var(--top-h) - 90px));background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow),0 0 40px rgba(57,255,106,.08);display:flex;flex-direction:column;overflow:hidden;z-index:149;transform-origin:bottom right;transition:transform .25s,opacity .25s}
+#chatPanel.hidden{transform:scale(.85);opacity:0;pointer-events:none}
+.cp-head{background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.cp-logo{width:30px;height:30px;background:var(--green-glow);border:1px solid var(--green-dim);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cp-name{font-weight:700;font-size:13px;color:var(--green)}
+.cp-sub{font-size:10px;color:var(--muted)}
+.cp-status{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;margin-left:auto;flex-shrink:0}
+#cpMsgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.cp-msg{max-width:85%;display:flex;flex-direction:column;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.cp-msg.u{align-self:flex-end;align-items:flex-end}
+.cp-msg.b{align-self:flex-start;align-items:flex-start}
+.cp-bubble{padding:8px 12px;border-radius:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;font-size:13px}
+.cp-msg.u .cp-bubble{background:var(--green);color:#0a0d0a;font-weight:500;border-bottom-right-radius:4px}
+.cp-msg.b .cp-bubble{background:var(--bg-card);border:1px solid var(--border);border-bottom-left-radius:4px}
+.cp-bubble strong{color:var(--green)}
+.cp-msg.u .cp-bubble strong{color:#000}
+.cp-time{font-size:9px;color:var(--dim);margin-top:3px;padding:0 3px}
+.cp-typing{display:flex;gap:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;width:fit-content}
+.cp-dot{width:5px;height:5px;background:var(--green-dim);border-radius:50%;animation:bounce 1.2s infinite}
+.cp-dot:nth-child(2){animation-delay:.2s}
+.cp-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.cp-sugg{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cp-sugg-btn{background:transparent;border:1px solid var(--green-dim);color:var(--green-dim);padding:4px 9px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .2s}
+.cp-sugg-btn:hover{background:var(--green-glow);color:var(--green);border-color:var(--green)}
+.cp-input-area{border-top:1px solid var(--border);padding:10px 12px;background:var(--bg-card);flex-shrink:0}
+.cp-input-row{display:flex;gap:6px;align-items:flex-end}
+#cpInput{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;padding:8px 11px;resize:none;max-height:100px;min-height:36px;line-height:1.4}
+#cpSend{width:36px;height:36px;background:var(--green);border:none;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
+#cpSend:hover{background:#4dff80}
+#cpSend:disabled{background:var(--dim);cursor:not-allowed}
+#cpSend svg{width:15px;height:15px;fill:#0a0d0a}
+.cp-hint{font-size:9px;color:var(--dim);text-align:center;margin-top:5px}
+
+/* ============================================================
+   SIGNATURE
+============================================================ */
+#sig{position:fixed;bottom:calc(var(--nav-h)+4px);left:8px;z-index:99;opacity:.22;font-size:9px;color:var(--green-dim);letter-spacing:.4px;pointer-events:none;font-weight:600;user-select:none}
+
+/* ============================================================
+   PRINT
+============================================================ */
+@media print{#dock,#topbar,#chatBtn,#chatPanel,#sig,.sub-tabs,.btn,.modal-bg{display:none!important}#main{padding:0!important;overflow:visible!important}.card{border:1px solid #ccc!important;page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     AUTH
+============================================================ -->
+<div id="auth">
+  <div class="auth-box">
+    <div class="auth-head">
+      <div class="auth-logo">🌿 StockPulse</div>
+      <div class="auth-sub">Gestão inteligente para alimentação</div>
+    </div>
+    <div class="auth-body">
+      <div id="aCard">
+      <div class="auth-tabs">
+        <button class="auth-tab act" data-go="login" onclick="showAuthTab('login')">Entrar</button>
+        <button class="auth-tab" data-go="cad" onclick="showAuthTab('cad')">Cadastrar</button>
+      </div>
+        <!-- LOGIN -->
+        <div id="vLogin">
+          <form id="fLogin" novalidate onsubmit="fazerLogin(event)">
+            <div class="fgroup"><label>E-mail</label><input type="email" id="aLe" required placeholder="seu@email.com" autocomplete="email"/></div>
+            <div class="fgroup"><label>Senha</label>
+              <div style="position:relative">
+                <input type="password" id="aLs" required maxlength="128" placeholder="Sua senha" autocomplete="current-password" style="padding-right:36px"/>
+                <button type="button" class="eye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px" onclick="toggleEye('aLs',this)">👁</button>
+              </div>
+            </div>
+            <div class="fgroup" style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" id="aLr" style="width:auto"/>
+              <label for="aLr" style="margin:0;cursor:pointer">Manter conectado</label>
+            </div>
+            <div id="aLmsg" class="aCard-msg" style="color:var(--danger);display:none"></div>
+            <button class="btn" id="aLb" style="width:100%;margin-top:8px">Entrar</button>
+            <div style="text-align:center;margin-top:12px">
+              <button type="button" class="btn-ghost btn-sm" data-go="rec" onclick="showAuthTab('rec')">Esqueci minha senha</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- CADASTRO -->
+        <div id="vCad" hidden style="display:none">
+          <form id="fCad" novalidate onsubmit="fazerCadastro(event)">
+            <div class="fgroup"><label>Nome completo</label><input id="aCn" required placeholder="Nome Sobrenome"/></div>
+            <div class="fgroup"><label>E-mail</label><input type="email" id="aCe" required placeholder="seu@email.com"/></div>
+            <div class="fgroup"><label>Nome do negócio</label><input id="aCneg" placeholder="Hamburguer do João"/></div>
+            <div class="fgroup"><label>Tipo de negócio</label>
+              <select id="aCt"><option value="">Selecione...</option><option value="hamburgueria">Hamburgueria</option><option value="restaurante">Restaurante</option><option value="acai">Açaiteria</option><option value="bar">Bar</option><option value="pizzaria">Pizzaria</option></select>
+            </div>
+            <div class="fgroup"><label>Senha</label><input type="password" id="aCs" required maxlength="128" placeholder="Crie uma senha forte" oninput="checkSenha()"/>
+              <ul id="aCsr">
+                <li id="sCh1">≥8 caracteres</li>
+                <li id="sCh2">Letra minúscula</li>
+                <li id="sCh3">Letra maiúscula</li>
+                <li id="sCh4">Número ou símbolo</li>
+                <li id="sCh5">Máximo 128</li>
+              </ul>
+            </div>
+            <div class="fgroup"><label>Confirmar senha</label><input type="password" id="aCc" required maxlength="128" placeholder="Repita a senha"/></div>
+            <div id="aCmsg" class="aCard-msg" style="color:var(--danger);display:none"></div>
+            <button class="btn" style="width:100%;margin-top:8px">Cadastrar</button>
+            <div style="text-align:center;margin-top:12px"><button type="button" class="btn-ghost btn-sm" onclick="showAuthTab('login')">← Voltar ao login</button></div>
+          </form>
+        </div>
+
+        <!-- RECUPERAR -->
+        <div id="vRec" hidden style="display:none">
+          <form id="fRec" novalidate onsubmit="recuperarSenha(event)">
+            <div class="fgroup"><label>Seu e-mail</label><input type="email" id="aRe" required placeholder="seu@email.com"/></div>
+            <div id="aRmsg" class="aCard-msg" style="display:none"></div>
+            <button class="btn" style="width:100%;margin-top:8px">Enviar instruções</button>
+            <div style="text-align:center;margin-top:12px"><button type="button" class="btn-ghost btn-sm" onclick="showAuthTab('login')">← Voltar</button></div>
+          </form>
+        </div>
+
+        <!-- REDEFINIR SENHA (link de recuperação) -->
+        <div id="vRed" hidden style="display:none">
+          <form id="fRed" novalidate onsubmit="redefinirSenha(event)">
+            <div class="card-title" style="margin-bottom:12px">🔑 Nova senha</div>
+            <div class="fgroup"><label>Nova senha</label><input type="password" id="aNs" required maxlength="128" placeholder="Nova senha" oninput="checkNovaSenha()"/></div>
+            <div class="fgroup"><label>Confirmar nova senha</label><input type="password" id="aNc" required maxlength="128" placeholder="Repita a nova senha"/></div>
+            <div id="aRedmsg" class="aCard-msg" style="display:none"></div>
+            <button class="btn" style="width:100%;margin-top:8px">Salvar nova senha</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- CARDÁPIO PÚBLICO (hash #cardapio) -->
+      <div id="cv" hidden style="display:none">
+        <div style="text-align:center;padding:20px">
+          <div id="cvNome" style="font-size:20px;font-weight:800;color:var(--green)">Cardápio</div>
+          <div id="cvSlogan" style="color:var(--muted);font-size:12px;margin-top:4px"></div>
+        </div>
+        <div id="cvItens"></div>
+        <div style="text-align:center;padding:16px;font-size:10px;color:var(--dim)">edcarlasousa.ai</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP
+============================================================ -->
+<div id="app" class="hidden" hidden>
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div class="top-logo"><div class="top-logo-dot"></div>StockPulse</div>
+    <div class="top-role" id="roleTag">Operador</div>
+    <button id="out" onclick="fazerLogout()">Sair</button>
+    <div id="al" class="hidden" hidden onclick="go('ped')">🔔 Novo pedido!</div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main">
+    <div id="view"></div>
+  </div>
+
+  <!-- Bottom Nav: 7 grupos -->
+  <nav id="dock">
+    <button class="nav-tab" id="nb-dash" onclick="go('dash')">
+      <span class="ico">📊</span>Painel
+    </button>
+    <button class="nav-tab" id="nb-ped" onclick="go('ped')">
+      <span class="ico">🧾</span>Pedidos
+      <span class="nav-badge hidden" id="pedBadge">0</span>
+    </button>
+    <button class="nav-tab" id="nb-car" onclick="go('car')">
+      <span class="ico">🍽️</span>Cardápio
+    </button>
+    <button class="nav-tab" id="nb-est" onclick="go('est')">
+      <span class="ico">📦</span>Estoque
+    </button>
+    <button class="nav-tab" id="nb-fin" onclick="go('fech')">
+      <span class="ico">💰</span>Financeiro
+    </button>
+    <button class="nav-tab" id="nb-cli" onclick="go('cli')">
+      <span class="ico">👥</span>Clientes
+    </button>
+    <button class="nav-tab" id="nb-cfg" onclick="go('cfg')">
+      <span class="ico">⚙️</span>Ajustes
+    </button>
+  </nav>
+</div>
+
+<!-- Novo Pedido Modal -->
+<div class="modal-bg hidden" id="modPed">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="section-title" style="margin:0">+ Novo Pedido</span>
+      <button class="modal-close" onclick="fecharModal('modPed')">✕</button>
+    </div>
+    <form id="f" onsubmit="submitNovoPedido(event)">
+      <div class="frow"><div class="fgroup"><label>Cliente *</label><input id="pNome" required placeholder="Nome do cliente"/></div>
+      <div class="fgroup"><label>Telefone</label><input id="pTel" placeholder="(11) 99999-9999" type="tel"/></div></div>
+      <div class="frow">
+        <div class="fgroup"><label>Canal</label><select id="pCanal"><option>Balcão</option><option>Delivery</option><option>WhatsApp</option><option>Mesa</option><option>Cardápio</option></select></div>
+        <div class="fgroup"><label>Pagamento</label><select id="pPag"><option>A combinar</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="fgroup"><label>Taxa de entrega (R$)</label><input id="pEntrega" type="number" min="0" step="0.01" placeholder="0,00"/></div>
+      </div>
+      <div class="fgroup"><label>Observação</label><textarea id="pObs" rows="2" placeholder="Sem cebola, etc."></textarea></div>
+      <div class="card-title" style="margin-bottom:8px">Itens do pedido</div>
+      <div id="pItens">
+        <div class="frow item-row">
+          <div class="fgroup"><label>Produto (nome exato)</label><input class="iNome" placeholder="Hambúrguer da casa"/></div>
+          <div class="fgroup" style="max-width:80px"><label>Qtd</label><input class="iQtd" type="number" min="1" max="99" value="1"/></div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:1px"><button type="button" class="btn-ghost btn-sm" onclick="remItem(this)">✕</button></div>
+        </div>
+      </div>
+      <button type="button" class="btn-ghost btn-sm" onclick="addItem()" style="margin-bottom:12px">+ Item</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="flex:1">Registrar pedido</button>
+        <button type="button" class="btn-ghost" onclick="imprimirComanda()">🖨 Comanda</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Detalhe do Pedido Modal -->
+<div class="modal-bg hidden" id="modDet">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="section-title" style="margin:0" id="detTit">Pedido #0</span>
+      <button class="modal-close" onclick="fecharModal('modDet')">✕</button>
+    </div>
+    <div id="detBody"></div>
+  </div>
+</div>
+
+<!-- Chatbot Button + Panel -->
+<button id="chatBtn" onclick="toggleChat()" title="StockPulse AI">
+  🤖<span class="dot"></span>
+</button>
+<div id="chatPanel" class="hidden">
+  <div class="cp-head">
+    <div class="cp-logo">🌿</div>
+    <div><div class="cp-name">StockPulse AI</div><div class="cp-sub">Assistente · CMV, Estoque, Vendas</div></div>
+    <div class="cp-status"></div>
+  </div>
+  <div id="cpMsgs"></div>
+  <div class="cp-input-area">
+    <div class="cp-input-row">
+      <textarea id="cpInput" rows="1" placeholder="Pergunte sobre CMV, estoque..." onkeydown="cpKey(event)" oninput="cpResize(this)"></textarea>
+      <button id="cpSend" onclick="cpEnviar()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="cp-hint">Enter = enviar · Shift+Enter = nova linha</div>
+  </div>
+</div>
+
+<!-- Signature -->
+<div id="sig">edcarlasousa.ai</div>
+
+<script>
+/* ============================================================
+   CONFIG & STATE
+============================================================ */
+const API = (()=>{const m=document.querySelector('meta[name="api-url"]');return m&&m.content||''})();
+let SES={token:null,refresh:null,user:null,rec:null};
+let ROLE='Operador'; // 'Administrador'|'Gerente'|'Operador'
+let S={
+  produtos:[],fichas:[],estoque:[],compras:[],vendas:[],perdas:[],
+  pedidos:[],clientes:[],fechamentos:[],config:{meta_cmv_pct:28,nome:'Meu Negócio',slug:'meu-negocio',logo_url:'',cor_marca:'#39ff6a'},
+};
+let _curView='';
+let _pedInterval=null;
+let _pedSom=false;
+let _chatOpen=false;
+let _cpEnviando=false;
+let _cpHist=[];
+let _cpToken='';
+
+/* ============================================================
+   UTILS
+============================================================ */
+const $ = id => document.getElementById(id);
+const fmt = n => (+n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = n => (+n||0).toFixed(1)+'%';
+const hoje = ()=>new Date().toISOString().split('T')[0];
+const agora = ()=>new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const esc = s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const badge=(txt,type)=>`<span class="badge badge-${type||'green'}">${esc(txt)}</span>`;
+const statusColor={novo:'badge-blue',preparo:'badge-warn',pronto:'badge-green',entregue:'badge-green',cancelado:'badge-danger'};
+
+function showMsg(elId,msg,color='var(--danger)'){
+  const el=$(elId);if(!el)return;
+  el.style.display=msg?'block':'none';
+  el.style.color=color;
+  el.textContent=msg;
+}
+
+function toggleEye(inputId,btn){
+  const inp=$(inputId);if(!inp)return;
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+function checkNovaSenha(){
+  const v=$('aNs');if(!v)return;
+  // reuse same logic
+}
+
+/* ============================================================
+   HASH/RECOVERY ROUTING
+============================================================ */
+function handleHash(){
+  const hash=window.location.hash.replace('#','');
+  if(hash==='cardapio'){
+    // Public cardápio view
+    $('auth').classList.add('hidden');$('auth').hidden=true;
+    $('app').classList.add('hidden');$('app').hidden=true;
+    $('cv').style.display='block';
+    $('cv').hidden=false;
+    carregarCardapioPublico();
+    window.location.hash='';
+    return true;
+  }
+  // Parse auth callback tokens
+  const params=new URLSearchParams(hash);
+  const type=params.get('type');
+  const accessToken=params.get('access_token');
+  const error=params.get('error');
+  if(error==='access_denied'||params.get('error_code')==='otp_expired'){
+    window.location.hash='';
+    showMsg('aLmsg','O link de recuperação expirou ou já foi usado. Solicite um novo.','var(--warn)');
+    return true;
+  }
+  if(accessToken&&type==='recovery'){
+    SES.rec=accessToken;
+    window.location.hash='';
+    showAuthTab('red');
+    return true;
+  }
+  if(accessToken&&type==='signup'){
+    window.location.hash='';
+    showMsg('aLmsg','✅ E-mail confirmado com sucesso! Faça login para entrar.','var(--green)');
+    return true;
+  }
+  return false;
+}
+
+function showAuthTab(tab){
+  ['vLogin','vCad','vRec','vRed'].forEach(id=>{const el=$(id);if(el){el.style.display='none';el.hidden=true;}});
+  if(tab==='login'&&$('vLogin')){$('vLogin').style.display='block';$('vLogin').hidden=false;}
+  else if(tab==='cad'&&$('vCad')){$('vCad').style.display='block';$('vCad').hidden=false;}
+  else if(tab==='rec'&&$('vRec')){$('vRec').style.display='block';$('vRec').hidden=false;}
+  else if(tab==='red'&&$('vRed')){$('vRed').style.display='block';$('vRed').hidden=false;}
+  document.querySelectorAll('.auth-tab').forEach(el=>{
+    const go=el.dataset.go||el.getAttribute('data-go');
+    el.classList.toggle('act',go===tab||(tab==='login'&&!go));
+  });
+}
+
+function carregarCardapioPublico(){
+  const cv=$('cv');if(!cv)return;
+  cv.hidden=false;
+  // Minimal public cardápio UI from local data
+  $('cvNome').textContent=S.config.marca_nome||S.config.nome||'Cardápio';
+  $('cvSlogan').textContent=S.config.slogan||'';
+  const cats=[...new Set(S.fichas.map(f=>f.categoria))];
+  $('cvItens').innerHTML=cats.map(cat=>`
+    <div style="padding:12px 16px"><div style="font-weight:700;color:var(--green);margin-bottom:8px">${esc(cat)}</div>
+    ${S.fichas.filter(f=>f.categoria===cat&&f.ativo).map(f=>`
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span>${esc(f.nome)}</span><span style="color:var(--green)">R$&thinsp;${fmt(f.preco_venda)}</span>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+async function redefinirSenha(e){
+  e.preventDefault();
+  const ns=$('aNs').value,nc=$('aNc').value;
+  const checks=[ns.length>=8,/[a-z]/.test(ns),/[A-Z]/.test(ns),/[\d\W]/.test(ns),ns.length<=128];
+  if(!checks.every(Boolean)){showMsg('aRedmsg','A senha não atende aos requisitos mínimos de segurança.');return;}
+  if(ns!==nc){showMsg('aRedmsg','As senhas não conferem.');return;}
+  const token=SES.rec;
+  if(!token){showMsg('aRedmsg','Token inválido. Solicite um novo link.');return;}
+  try{
+    const r=await fetch(API+'/auth/redefinir-senha',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({nova_senha:ns,confirmar_senha:nc})});
+    const d=await r.json();
+    if(!r.ok){showMsg('aRedmsg',d.detail||'Erro ao redefinir.');return;}
+    SES.rec=null;
+    showMsg('aLmsg',d.mensagem||'Senha alterada. Entre com a nova senha.','var(--green)');
+    $('aNs').value='';$('aNc').value='';
+    showAuthTab('login');
+  }catch(err){showMsg('aRedmsg','Erro ao conectar.');}
+}
+
+/* ============================================================
+   SESSION
+============================================================ */
+function salvarSes(t,remember,email){
+  SES={token:t.access_token,refresh:t.refresh_token,user:t.usuario,rec:null};
+  const st=remember?localStorage:sessionStorage;
+  st.setItem('sp_rt',t.refresh_token);
+  if(remember&&email)localStorage.setItem('sp_user',email);
+  ROLE={administrador:'Administrador',gerente:'Gerente',operador:'Operador'}[t.usuario?.perfil]||'Operador';
+}
+
+function limparSes(){
+  SES={token:null,refresh:null,user:null};
+  ROLE='Operador';
+  sessionStorage.removeItem('sp_rt');
+  localStorage.removeItem('sp_rt');
+}
+
+async function api(method,path,body){
+  if(!API)throw Object.assign(new Error('API não configurada'),{status:0});
+  const h={'Content-Type':'application/json'};
+  if(SES.token)h['Authorization']='Bearer '+SES.token;
+  const r=await fetch(API+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  if(r.status===401){
+    // try refresh
+    const rt=sessionStorage.getItem('sp_rt')||localStorage.getItem('sp_rt');
+    if(rt&&path!=='/auth/renovar'){
+      try{
+        const r2=await fetch(API+'/auth/renovar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});
+        if(r2.ok){const d2=await r2.json();salvarSes(d2.dados||d2,!!localStorage.getItem('sp_rt'));return api(method,path,body);}
+      }catch(_){}
+    }
+  }
+  return r;
+}
+
+/* ============================================================
+   AUTH SCREENS (login, cadastro, recuperação)
+============================================================ */
+function checkSenha(){
+  const v=$('aCs').value;
+  const checks=[v.length>=8,/[a-z]/.test(v),/[A-Z]/.test(v),/[\d\W]/.test(v),v.length<=128];
+  ['sCh1','sCh2','sCh3','sCh4','sCh5'].forEach((id,i)=>$(id)&&$(id).classList.toggle('ok',checks[i]));
+}
+
+async function fazerLogin(e){
+  e.preventDefault();
+  const email=$('aLe').value.trim().toLowerCase();
+  const senha=$('aLs').value;
+  if(!email||!email.includes('@')){showMsg('aLmsg','Informe um e-mail válido.');return;}
+  if(!senha){showMsg('aLmsg','Informe sua senha.');return;}
+  if(!API){showMsg('aLmsg','O endereço da API não foi configurado neste arquivo HTML.');return;}
+  $('aLb').disabled=true;$('aLb').textContent='Entrando...';
+  showMsg('aLmsg','');
+  try{
+    const r=await fetch(API+'/auth/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,senha})});
+    const d=await r.json();
+    if(r.status===429){
+      const ra=r.headers.get('Retry-After');
+      showMsg('aLmsg',`Muitas tentativas. Tente novamente em ${ra?Math.ceil(+ra/60)+' min':'alguns minutos'}.`);return;
+    }
+    if(r.status>=500){showMsg('aLmsg','Servidor temporariamente indisponível. Tente em instantes.');return;}
+    if(!r.ok){showMsg('aLmsg',d.detail||'e-mail ou senha incorretos.');return;}
+    salvarSes(d.dados||d,$('aLr').checked,email);
+    $('aLs').value='';
+    abrirApp();
+  }catch(err){showMsg('aLmsg','Não foi possível conectar à API.');}
+  finally{$('aLb').disabled=false;$('aLb').textContent='Entrar';}
+}
+
+async function fazerCadastro(e){
+  e.preventDefault();
+  const nome=$('aCn').value.trim().replace(/\s+/,' ');
+  const email=$('aCe').value.trim().toLowerCase();
+  const s=$('aCs').value,c=$('aCc').value;
+  const partes=nome.split(' ');
+  if(partes.length<2||partes.some(p=>p.length<2)){showMsg('aCmsg','Informe o nome completo (nome e sobrenome).');return;}
+  if(!email.includes('@')){showMsg('aCmsg','Informe um e-mail válido.');return;}
+  const pwOk=[s.length>=8,/[a-z]/.test(s),/[A-Z]/.test(s),/[\d\W]/.test(s),s.length<=128].every(Boolean);
+  if(!pwOk){showMsg('aCmsg','A senha não atende aos requisitos mínimos de segurança.');return;}
+  if(s!==c){showMsg('aCmsg','As senhas não conferem.');return;}
+  const body={nome,email,senha:s,confirmar_senha:c};
+  if($('aCneg').value.trim())body.nome_negocio=$('aCneg').value.trim();
+  if($('aCt').value)body.tipo_negocio=$('aCt').value;
+  try{
+    const r=await fetch(API+'/auth/cadastro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok){showMsg('aCmsg',d.detail||'Erro no cadastro.');return;}
+    $('aCs').value='';$('aCc').value='';
+    showMsg('aLmsg','✅ '+(d.mensagem||'Link de confirmação enviado.'),'var(--green)');
+    showAuthTab('login');
+  }catch(err){showMsg('aCmsg','Erro ao conectar.');}
+}
+
+async function recuperarSenha(e){
+  e.preventDefault();
+  const email=$('aRe').value.trim().toLowerCase();
+  if(!email||!email.includes('@')){showMsg('aRmsg','Informe um e-mail válido.');return;}
+  try{
+    await fetch(API+'/auth/recuperar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    showMsg('aRmsg','Se existir uma conta com este e-mail, enviamos as instruções de recuperação. Confira a caixa de entrada e o spam.','var(--green)');
+  }catch(_){showMsg('aRmsg','Se existir uma conta com este e-mail, enviamos as instruções de recuperação.');}
+}
+
+async function fazerLogout(){
+  try{await api('POST','/auth/sair');}catch(_){}
+  limparSes();
+  $('view').innerHTML='';
+  showMsg('aLmsg','Você saiu da sua sessão.','var(--green)');
+  $('app').classList.add('hidden');$('app').hidden=true;
+  $('auth').classList.remove('hidden');$('auth').hidden=false;
+  clearInterval(_pedInterval);
+}
+
+/* ============================================================
+   APP INIT
+============================================================ */
+function abrirApp(){
+  $('auth').classList.add('hidden');$('auth').hidden=true;
+  $('app').classList.remove('hidden');$('app').hidden=false;
+  $('roleTag').textContent=ROLE;
+  // Hide Ajustes for operador
+  if($('nb-cfg')){$('nb-cfg').style.display=ROLE==='Operador'?'none':'';$('nb-cfg').hidden=ROLE==='Operador';}
+  go('dash');
+  iniciarAlertaPedidos();
+}
+
+async function tentarRestaurarSessao(){
+  if(!API){
+    showMsg('aLmsg','O endereço da API não foi configurado neste arquivo HTML.');
+    return;
+  }
+  const rt=sessionStorage.getItem('sp_rt')||localStorage.getItem('sp_rt');
+  if(!rt)return;
+  try{
+    const r=await fetch(API+'/auth/renovar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});
+    if(r.ok){
+      const d=await r.json();
+      salvarSes(d.dados||d,!!localStorage.getItem('sp_rt'));
+      abrirApp();
+    } else if(r.status===401){
+      limparSes();
+      showMsg('aLmsg','Sua sessão expirou. Faça login novamente.','var(--warn)');
+      const em=localStorage.getItem('sp_user');if(em)$('aLe').value=em;
+    }
+  }catch(_){/* servidor fora: mantém o token salvo */}
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+const NAV_MAP={
+  dash:'nb-dash',ped:'nb-ped',car:'nb-car',promo:'nb-car',
+  cli:'nb-cli',fech:'nb-fin',rel:'nb-fin',
+  prod:'nb-est',est:'nb-est',comp:'nb-est',
+  ven:'nb-fin',per:'nb-fin',fic:'nb-car',
+  cfg:'nb-cfg'
+};
+
+function go(view){
+  if(!SES.token){return;}
+  _curView=view;
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('act'));
+  const nb=NAV_MAP[view];if(nb)$(nb)&&$(nb).classList.add('act');
+  const renders={
+    dash:renderDash,ped:renderPed,car:renderCar,promo:renderPromo,
+    cli:renderCli,fech:renderFech,rel:renderRel,
+    prod:renderProd,est:renderEst,comp:renderComp,
+    ven:renderVen,per:renderPer,fic:renderFic,
+    cfg:renderCfg
+  };
+  if(renders[view])renders[view]();
+  else $('view').innerHTML=`<p style="color:var(--muted);padding:40px;text-align:center">Módulo "${view}" em desenvolvimento.</p>`;
+}
+
+/* ============================================================
+   DEMO DATA (usado quando API não disponível ou para prévia)
+============================================================ */
+(function initDemoData(){
+  S.fichas=[
+    {nome:'Hambúrguer da casa',categoria:'Lanches',preco_venda:28,custo:11,ativo:true,cmv_item_pct:39.3,margem_pct:60.7},
+    {nome:'Batata Frita',categoria:'Acompanhamentos',preco_venda:14,custo:4,ativo:true,cmv_item_pct:28.6,margem_pct:71.4},
+    {nome:'Refrigerante',categoria:'Bebidas',preco_venda:7,custo:2,ativo:true,cmv_item_pct:28.6,margem_pct:71.4},
+    {nome:'Açaí 300ml',categoria:'Açaí',preco_venda:18,custo:6,ativo:true,cmv_item_pct:33.3,margem_pct:66.7},
+  ];
+  S.produtos=[
+    {nome:'Pão de hambúrguer',unidade:'un',custo:1.2,saldo:120,valor:144},
+    {nome:'Carne bovina 150g',unidade:'un',custo:8.5,saldo:85,valor:722.5},
+    {nome:'Batata palito 1kg',unidade:'kg',custo:5.5,saldo:30,valor:165},
+    {nome:'Polpa de açaí 1kg',unidade:'kg',custo:28,saldo:5,valor:140},
+    {nome:'Refrigerante lata',unidade:'un',custo:2,saldo:4,valor:8},
+  ];
+  S.estoque=S.produtos;
+  S.pedidos=[
+    {id:1,numero:101,status:'novo',canal:'Delivery',cliente_nome:'João Silva',pagamento:'Pix',total:49,criado_em:new Date().toISOString(),visto:false,itens:[{nome:'Hambúrguer da casa',quantidade:1,preco_unit:28},{nome:'Batata Frita',quantidade:1,preco_unit:14},{nome:'Refrigerante',quantidade:1,preco_unit:7}]},
+    {id:2,numero:102,status:'preparo',canal:'Balcão',cliente_nome:'Maria Santos',pagamento:'Cartão',total:28,criado_em:new Date(Date.now()-600000).toISOString(),visto:true,itens:[{nome:'Hambúrguer da casa',quantidade:1,preco_unit:28}]},
+    {id:3,numero:103,status:'pronto',canal:'WhatsApp',cliente_nome:'Carlos Lima',pagamento:'Dinheiro',total:35,criado_em:new Date(Date.now()-1200000).toISOString(),visto:true,itens:[{nome:'Hambúrguer da casa',quantidade:1,preco_unit:28},{nome:'Refrigerante',quantidade:1,preco_unit:7}]},
+  ];
+  S.vendas=[
+    {data:hoje(),ficha:'Hambúrguer da casa',quantidade:12,faturamento:336,custo_teorico:132},
+    {data:hoje(),ficha:'Batata Frita',quantidade:8,faturamento:112,custo_teorico:32},
+    {data:hoje(),ficha:'Refrigerante',quantidade:15,faturamento:105,custo_teorico:30},
+  ];
+  S.fechamentos=[
+    {data:'2026-11-20',faturamento:1200,cmv_pct:27.1,acima_da_meta:false},
+    {data:'2026-11-21',faturamento:980,cmv_pct:29.8,acima_da_meta:true},
+    {data:'2026-11-22',faturamento:1540,cmv_pct:26.4,acima_da_meta:false},
+    {data:'2026-11-23',faturamento:1100,cmv_pct:28.5,acima_da_meta:true},
+    {data:'2026-11-24',faturamento:1350,cmv_pct:27.9,acima_da_meta:false},
+    {data:'2026-11-25',faturamento:860,cmv_pct:30.2,acima_da_meta:true},
+  ];
+  S.clientes=[
+    {nome:'João Silva',telefone:'11999991111',pedidos:5,total:245,ticket_medio:49,ultima_compra:'2026-11-25',dias_sem_pedir:0,favorito:'Hambúrguer da casa',situacao:'ativo'},
+    {nome:'Maria Santos',telefone:'11988882222',pedidos:3,total:168,ticket_medio:56,ultima_compra:'2026-11-20',dias_sem_pedir:5,favorito:'Açaí 300ml',situacao:'ativo'},
+    {nome:'Carlos Lima',telefone:'11977773333',pedidos:1,total:35,ticket_medio:35,ultima_compra:'2026-11-05',dias_sem_pedir:20,favorito:'Hambúrguer da casa',situacao:'recuperar'},
+  ];
+})();
+
+/* ============================================================
+   SIM BUTTON (testes)
+============================================================ */
+function pend(){return S.pedidos.filter(p=>p.status==='novo'&&!p.visto);}
+
+/* ============================================================
+   DASH
+============================================================ */
+let _chartMode='cmv'; // 'cmv' | 'fat'
+
+function renderDash(){
+  const fat=S.vendas.reduce((a,v)=>a+(+v.faturamento||0),0);
+  const custo=S.vendas.reduce((a,v)=>a+(+v.custo_teorico||0),0);
+  const meta=S.config.meta_cmv_pct||28;
+  const cmvPct=fat>0?(custo/fat*100):0;
+  const novos=S.pedidos.filter(p=>p.status==='novo').length;
+  const aVencer=S.produtos.filter(p=>p.saldo<=2).length;
+
+  // Build ruler
+  const rulerHtml=buildRuler(cmvPct,meta);
+
+  // Chart selector
+  const h=`
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="card-title" style="margin:0">📈 Evolução</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn-ghost btn-sm ${_chartMode==='cmv'?'act sub-tab':''}" id="cmbCmv" onclick="switchChart('cmv')">CMV %</button>
+        <button class="btn-ghost btn-sm ${_chartMode==='fat'?'act sub-tab':''}" id="cmbFat" onclick="switchChart('fat')">Faturamento vs CMV</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+  </div>`;
+
+  $('view').innerHTML=`
+  <div class="section-title">📊 Painel — ${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>
+
+  <!-- Indicadores -->
+  <div class="grid3">
+    <div class="stat">
+      <div class="stat-label">Faturamento hoje</div>
+      <div class="stat-val">R$&thinsp;${fmt(fat)}</div>
+      <div class="stat-sub">${S.vendas.length} registros</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">CMV % hoje</div>
+      <div class="stat-val" style="color:${cmvPct>meta?'var(--danger)':'var(--green)'}">${pct(cmvPct)}</div>
+      <div class="stat-sub">Meta: ${pct(meta)}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Pedidos abertos</div>
+      <div class="stat-val" style="color:${novos?'var(--warn)':'var(--green)'}">${novos}</div>
+      <div class="stat-sub">${aVencer} insumo(s) crítico(s)</div>
+    </div>
+  </div>
+
+  <!-- CMV Ruler -->
+  <div class="card">
+    <div class="card-title">🎯 Meta de CMV — ${pct(meta)}</div>
+    ${rulerHtml}
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">
+      CMV atual: <strong style="color:${cmvPct>meta?'var(--danger)':'var(--green)'}">${pct(cmvPct)}</strong>
+      ${cmvPct>meta?`<span style="color:var(--danger)"> ⚠️ +${(cmvPct-meta).toFixed(1)}pp acima da meta</span>`:`<span style="color:var(--green)"> ✅ ${(meta-cmvPct).toFixed(1)}pp abaixo da meta</span>`}
+    </div>
+  </div>
+
+  <!-- Gráfico unificado -->
+  ${h}
+
+  <!-- Operação de hoje -->
+  <div class="card">
+    <div class="card-title">⚡ Operação de hoje</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${S.vendas.slice(0,5).map(v=>`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${esc(v.ficha)}</span><span style="color:var(--green)">${v.quantidade}× R$&thinsp;${fmt(v.faturamento)}</span></div>`).join('')||'<div style="color:var(--muted)">Sem vendas hoje.</div>'}
+    </div>
+  </div>
+
+  <!-- Mais vendidos -->
+  <div class="card">
+    <div class="card-title">🏆 Mais vendidos (Curva ABC)</div>
+    ${renderABC()}
+  </div>`;
+
+  drawChart(_chartMode);
+}
+
+function buildRuler(cmv,meta){
+  const max=Math.max(50,cmv*1.2,meta*1.5);
+  const cmvPos=Math.min(99,cmv/max*100);
+  const metaPos=Math.min(99,meta/max*100);
+  const color=cmv>meta?'var(--danger)':'var(--green)';
+  return `
+  <div class="ruler-wrap">
+    <div class="ruler-track">
+      <div class="ruler-fill" style="width:${cmvPos}%;background:${color};opacity:.7"></div>
+    </div>
+    <div class="ruler-mark" style="left:${metaPos}%;background:var(--warn)">
+      <div class="ruler-pct-label" style="left:50%">Meta<br>${pct(meta)}</div>
+    </div>
+    <div class="ruler-label" style="left:${Math.min(cmvPos-2,88)}%;color:${color}">▶ ${pct(cmv)}</div>
+  </div>`;
+}
+
+function switchChart(mode){
+  _chartMode=mode;
+  renderDash();
+}
+
+function drawChart(mode){
+  const canvas=$('mainChart');if(!canvas)return;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  const dpr=window.devicePixelRatio||1;
+  const w=canvas.offsetWidth,h=canvas.offsetHeight||160;
+  canvas.width=w*dpr;canvas.height=h*dpr;
+  ctx.scale(dpr,dpr);
+  const fs=S.fechamentos;
+  if(!fs.length){ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillText('Sem dados',w/2-30,h/2);return;}
+  const labels=fs.map(f=>f.data.slice(5));
+  if(mode==='cmv'){
+    const vals=fs.map(f=>+f.cmv_pct||0);
+    drawLine(ctx,w,h,labels,vals,'var(--green)',28,'CMV %');
+  }else{
+    const fats=fs.map(f=>+f.faturamento||0);
+    const cmvs=fs.map(f=>+f.faturamento*(+f.cmv_pct||0)/100);
+    drawBar(ctx,w,h,labels,fats,cmvs);
+  }
+}
+
+function drawLine(ctx,W,H,labels,vals,color,refLine,yLabel){
+  const pad={t:16,r:12,b:30,l:40};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const max=Math.max(...vals,refLine||0)*1.1||50;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pad.t+ch*(1-i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();}
+  // ref line
+  if(refLine){const y=pad.t+ch*(1-refLine/max);ctx.strokeStyle='rgba(255,179,71,.5)';ctx.setLineDash([4,4]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.setLineDash([]);}
+  // main line
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();
+  vals.forEach((v,i)=>{const x=pad.l+i/(vals.length-1||1)*cw,y=pad.t+ch*(1-v/max);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+  // dots + labels
+  ctx.fillStyle=color;
+  vals.forEach((v,i)=>{
+    const x=pad.l+i/(vals.length-1||1)*cw,y=pad.t+ch*(1-v/max);
+    ctx.beginPath();ctx.arc(x,y,3,0,2*Math.PI);ctx.fill();
+    ctx.fillStyle='rgba(232,245,232,.5)';ctx.font='9px system-ui';ctx.textAlign='center';
+    ctx.fillText(labels[i],x,H-10);ctx.fillStyle=color;
+  });
+}
+
+function drawBar(ctx,W,H,labels,fats,cmvs){
+  const pad={t:16,r:12,b:30,l:48};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const max=Math.max(...fats)*1.1||100;
+  ctx.clearRect(0,0,W,H);
+  const bw=cw/fats.length*.4,gap=cw/fats.length;
+  fats.forEach((f,i)=>{
+    const x=pad.l+i*gap+gap*.1,yF=pad.t+ch*(1-f/max),hF=ch*(f/max);
+    ctx.fillStyle='rgba(57,255,106,.35)';ctx.fillRect(x,yF,bw,hF);
+    const c=cmvs[i],yC=pad.t+ch*(1-c/max),hC=ch*(c/max);
+    ctx.fillStyle='rgba(255,179,71,.6)';ctx.fillRect(x+bw+2,yC,bw,hC);
+    ctx.fillStyle='rgba(232,245,232,.5)';ctx.font='9px system-ui';ctx.textAlign='center';
+    ctx.fillText(labels[i],x+bw,H-10);
+  });
+}
+
+function renderABC(){
+  const sorted=[...S.vendas].sort((a,b)=>(+b.faturamento||0)-(+a.faturamento||0));
+  const total=sorted.reduce((a,v)=>a+(+v.faturamento||0),0);
+  if(!total)return '<div style="color:var(--muted)">Sem vendas.</div>';
+  let acc=0;
+  return `<table class="tbl"><thead><tr><th>Produto</th><th>Faturamento</th><th>%</th><th>Curva</th></tr></thead><tbody>
+  ${sorted.map(v=>{
+    const p=(+v.faturamento||0)/total*100;acc+=p;
+    const curva=acc<=70?'A':acc<=90?'B':'C';
+    const col={A:'badge-green',B:'badge-warn',C:'badge-danger'}[curva];
+    return `<tr><td>${esc(v.ficha)}</td><td>R$&thinsp;${fmt(v.faturamento)}</td><td>${p.toFixed(1)}%</td><td>${badge(curva,col)}</td></tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+/* ============================================================
+   PEDIDOS
+============================================================ */
+function renderPed(){
+  const cols=['novo','preparo','pronto','entregue'];
+  const labels={novo:'🆕 Novo',preparo:'🔥 Em preparo',pronto:'✅ Pronto',entregue:'📦 Concluído'};
+  const hoje_str=hoje();
+  const pedHoje=S.pedidos.filter(p=>p.criado_em&&p.criado_em.startsWith(hoje_str));
+  const fat=pedHoje.filter(p=>p.status==='entregue').reduce((a,p)=>a+(+p.total||0),0);
+  const qtd=pedHoje.filter(p=>p.status==='entregue').length;
+  const abertos=S.pedidos.filter(p=>!['entregue','cancelado'].includes(p.status)).length;
+
+  const kanbHtml=cols.map(st=>{
+    const peds=S.pedidos.filter(p=>p.status===st);
+    return `<div class="kol">
+      <div class="kol-head">${labels[st]}<span class="cnt">${peds.length}</span></div>
+      ${peds.map(p=>`<div class="kcard ${!p.visto&&st==='novo'?'kcard-new':''}" onclick="verPedido(${p.id})">
+        <div class="kcard-num">#${p.numero} · ${p.canal}</div>
+        <div class="kcard-name">${esc(p.cliente_nome)}</div>
+        <div class="kcard-total">R$&thinsp;${fmt(p.total)}</div>
+        <div class="kcard-canal">${new Date(p.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>`).join('')||`<div style="color:var(--dim);font-size:12px;text-align:center;padding:16px 0">Nenhum</div>`}
+    </div>`;
+  }).join('');
+
+  $('view').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div class="section-title" style="margin:0">🧾 Pedidos</div>
+    <button class="btn btn-sm" onclick="abrirModal('modPed')">+ Novo pedido</button>
+  </div>
+  <!-- Indicadores -->
+  <div class="grid3" style="margin-bottom:16px">
+    <div class="stat"><div class="stat-label">Faturado hoje</div><div class="stat-val">R$&thinsp;${fmt(fat)}</div></div>
+    <div class="stat"><div class="stat-label">Pedidos concluídos</div><div class="stat-val">${qtd}</div></div>
+    <div class="stat"><div class="stat-label">Em aberto</div><div class="stat-val" style="color:${abertos?'var(--warn)':'var(--green)'}">${abertos}</div></div>
+  </div>
+  <!-- Kanban no topo -->
+  <div class="kanban">${kanbHtml}</div>
+
+  <!-- Sub-tabs para sub-módulos de pedidos -->
+  <div class="sub-tabs">
+    <button class="sub-tab act" onclick="goSub('ped','lista')">Todos os pedidos</button>
+    <button class="sub-tab" onclick="goSub('ped','clientes')">Clientes</button>
+  </div>
+  <div id="pedSub">
+    ${renderListaPedidos()}
+  </div>
+
+  <!-- Simulador (testes) -->
+  <button id="sim" class="btn-ghost btn-sm" onclick="simPedido()" style="margin-top:12px;opacity:.4">▶ Simular pedido</button>`;
+}
+
+function goSub(parent,sub){
+  if(parent==='ped'){
+    document.querySelectorAll('#view .sub-tab').forEach(t=>t.classList.remove('act'));
+    event&&event.target.classList.add('act');
+    if(sub==='lista')$('pedSub').innerHTML=renderListaPedidos();
+    else if(sub==='clientes')$('pedSub').innerHTML=renderListaClientes();
+  }
+}
+
+function renderListaPedidos(){
+  const sorted=[...S.pedidos].sort((a,b)=>new Date(b.criado_em)-new Date(a.criado_em));
+  return `<table class="tbl"><thead><tr><th>#</th><th>Cliente</th><th>Canal</th><th>Status</th><th>Total</th><th>Ação</th></tr></thead><tbody>
+  ${sorted.map(p=>`<tr>
+    <td>#${p.numero}</td><td>${esc(p.cliente_nome)}</td><td>${esc(p.canal)}</td>
+    <td>${badge(p.status,statusColor[p.status]||'badge-blue')}</td>
+    <td>R$&thinsp;${fmt(p.total)}</td>
+    <td><button class="btn-ghost btn-sm" onclick="verPedido(${p.id})">Ver</button></td>
+  </tr>`).join('')||'<tr><td colspan="6" style="color:var(--muted)">Sem pedidos.</td></tr>'}
+  </tbody></table>`;
+}
+
+function simPedido(){
+  const n=Math.max(...S.pedidos.map(p=>p.numero),100)+1;
+  S.pedidos.unshift({id:Date.now(),numero:n,status:'novo',canal:'Delivery',cliente_nome:'Cliente Teste',pagamento:'Pix',total:49,criado_em:new Date().toISOString(),visto:false,itens:[{nome:'Hambúrguer da casa',quantidade:1,preco_unit:28},{nome:'Batata Frita',quantidade:1,preco_unit:14},{nome:'Refrigerante',quantidade:1,preco_unit:7}]});
+  renderPed();
+  atualizarBadge();
+}
+
+function abrirModal(id){$('body')||$;document.getElementById(id).classList.remove('hidden');}
+function fecharModal(id){document.getElementById(id).classList.add('hidden');}
+
+function addItem(){
+  const c=document.createElement('div');c.className='frow item-row';
+  c.innerHTML=`<div class="fgroup"><label>Produto</label><input class="iNome" placeholder="Nome do produto"/></div><div class="fgroup" style="max-width:80px"><label>Qtd</label><input class="iQtd" type="number" min="1" max="99" value="1"/></div><div style="display:flex;align-items:flex-end;padding-bottom:1px"><button type="button" class="btn-ghost btn-sm" onclick="remItem(this)">✕</button></div>`;
+  $('pItens').appendChild(c);
+}
+function remItem(btn){const row=btn.closest('.item-row');if($('pItens').querySelectorAll('.item-row').length>1)row.remove();}
+
+function submitNovoPedido(e){
+  e.preventDefault();
+  const nomes=[...$('pItens').querySelectorAll('.iNome')].map(i=>i.value.trim());
+  const qtds=[...$('pItens').querySelectorAll('.iQtd')].map(i=>+i.value||1);
+  const itens=nomes.map((n,i)=>({nome:n,quantidade:qtds[i]})).filter(i=>i.nome);
+  if(!itens.length){alert('Adicione ao menos um item.');return;}
+  const entrega=+$('pEntrega').value||0;
+  const fichaMap=Object.fromEntries(S.fichas.map(f=>[f.nome,f]));
+  const total=itens.reduce((a,it)=>{const f=fichaMap[it.nome];return a+(f?(f.preco_venda||0)*it.quantidade:0);},0)+entrega;
+  const n=Math.max(...S.pedidos.map(p=>p.numero),100)+1;
+  const ped={id:Date.now(),numero:n,status:'novo',canal:$('pCanal').value,cliente_nome:$('pNome').value.trim(),cliente_telefone:$('pTel').value.trim()||null,pagamento:$('pPag').value,observacao:$('pObs').value.trim()||null,total,criado_em:new Date().toISOString(),visto:false,itens:itens.map((it,i)=>({nome:it.nome,quantidade:it.quantidade,preco_unit:fichaMap[it.nome]?.preco_venda||0}))};
+  S.pedidos.unshift(ped);
+  fecharModal('modPed');
+  atualizarBadge();
+  go('ped');
+  // Try API
+  if(API&&SES.token){
+    api('POST','/pedidos',{cliente_nome:ped.cliente_nome,cliente_telefone:ped.cliente_telefone,canal:ped.canal,pagamento:ped.pagamento,observacao:ped.observacao,itens:itens.map(i=>({ficha:i.nome,quantidade:i.quantidade}))}).catch(()=>{});
+  }
+}
+
+function verPedido(id){
+  const p=S.pedidos.find(p=>p.id===id);if(!p)return;
+  p.visto=true;atualizarBadge();
+  $('detTit').textContent=`Pedido #${p.numero} — ${p.cliente_nome}`;
+  $('detBody').innerHTML=`
+  <div style="margin-bottom:12px">
+    ${badge(p.status,statusColor[p.status]||'badge-blue')} ${badge(p.canal,'badge-blue')} ${badge(p.pagamento,'badge-green')}
+  </div>
+  <div class="card"><div class="card-title">Itens</div>
+    <table class="tbl"><thead><tr><th>Produto</th><th>Qtd</th><th>Preço</th></tr></thead><tbody>
+    ${p.itens.map(i=>`<tr><td>${esc(i.nome)}</td><td>${i.quantidade}</td><td>R$&thinsp;${fmt(i.preco_unit)}</td></tr>`).join('')}
+    <tr><td colspan="2"><strong>Total</strong></td><td><strong style="color:var(--green)">R$&thinsp;${fmt(p.total)}</strong></td></tr>
+    </tbody></table>
+  </div>
+  ${p.observacao?`<div class="card"><div class="card-title">Observação</div>${esc(p.observacao)}</div>`:''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    ${!['entregue','cancelado'].includes(p.status)?`<button class="btn btn-sm" onclick="avancarPedido(${id})">▶ Avançar status</button>`:''}
+    ${!['entregue','cancelado'].includes(p.status)?`<button class="btn-danger btn-sm" onclick="cancelarPedido(${id})">✕ Cancelar</button>`:''}
+    <button class="btn-ghost btn-sm" onclick="imprimirComandaId(${id})">🖨 Imprimir comanda</button>
+  </div>`;
+  abrirModal('modDet');
+}
+
+function aceita(id){avancarPedido(id);}
+
+function avancarPedido(id){
+  const p=S.pedidos.find(p=>p.id===id);if(!p)return;
+  const fl=['novo','preparo','pronto','entregue'];
+  const idx=fl.indexOf(p.status);
+  if(idx<fl.length-1){p.status=fl[idx+1];p.visto=true;}
+  fecharModal('modDet');
+  if(_curView==='ped')renderPed();
+  atualizarBadge();
+  if(API&&SES.token)api('POST',`/pedidos/${p.numero}/avancar`).catch(()=>{});
+}
+
+function cancelarPedido(id){
+  const p=S.pedidos.find(p=>p.id===id);if(!p)return;
+  p.status='cancelado';p.visto=true;
+  fecharModal('modDet');
+  if(_curView==='ped')renderPed();
+  if(API&&SES.token)api('POST',`/pedidos/${p.numero}/cancelar`).catch(()=>{});
+}
+
+function imprimirComanda(){window.print();}
+function imprimirComandaId(id){
+  const p=S.pedidos.find(p=>p.id===id);if(!p)return;
+  const w=window.open('','_blank','width=400,height=600');
+  w.document.write(`<html><body style="font-family:monospace;padding:16px"><h2>StockPulse · #${p.numero}</h2><p>${p.canal} · ${p.cliente_nome}</p><hr/>${p.itens.map(i=>`<p>${i.quantidade}x ${i.nome}</p>`).join('')}<hr/><p><strong>Total: R$ ${fmt(p.total)}</strong></p>${p.observacao?`<p>Obs: ${p.observacao}</p>`:''}<p style="color:#999;font-size:11px">edcarlasousa.ai</p></body></html>`);
+  w.print();w.close();
+}
+
+/* ============================================================
+   ALERTA DE PEDIDOS
+============================================================ */
+function atualizarBadge(){
+  const n=S.pedidos.filter(p=>p.status==='novo'&&!p.visto).length;
+  const b=$('pedBadge');
+  if(b){b.textContent=n;b.classList.toggle('hidden',!n);b.hidden=!n;}
+  const al=$('al');if(al){al.classList.toggle('hidden',!n);al.hidden=!n;}
+}
+
+function iniciarAlertaPedidos(){
+  atualizarBadge();
+  _pedInterval=setInterval(()=>{
+    atualizarBadge();
+    if(API&&SES.token){
+      api('GET','/pedidos?status=novo').then(async r=>{
+        if(r&&r.ok){const d=await r.json();S.pedidos=[...(d.dados||d),...S.pedidos.filter(p=>p.status!=='novo')];}
+      }).catch(()=>{});
+    }
+  },30000);
+}
+
+/* ============================================================
+   CARDÁPIO (car / fic / promo)
+============================================================ */
+function renderCar(){
+  $('view').innerHTML=`
+  <div class="section-title">🍽️ Cardápio Digital</div>
+  <div class="sub-tabs">
+    <button class="sub-tab act" onclick="goCarTab('fichas',this)">Fichas Técnicas</button>
+    <button class="sub-tab" onclick="goCarTab('promo',this)">Promoções</button>
+    <button class="sub-tab" onclick="goCarTab('pub',this)">Cardápio Público</button>
+  </div>
+  <div id="carSub">${renderFichas()}</div>`;
+}
+
+function goCarTab(t,btn){
+  document.querySelectorAll('#view .sub-tab').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  if(t==='fichas')$('carSub').innerHTML=renderFichas();
+  else if(t==='promo')$('carSub').innerHTML=renderPromoContent();
+  else if(t==='pub')$('carSub').innerHTML=renderCardapioPublico();
+}
+
+function renderFic(){renderCar();}
+
+function renderFichas(){
+  const cats=[...new Set(S.fichas.map(f=>f.categoria))];
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn btn-sm" onclick="showNovaFicha()">+ Nova ficha</button>
+  </div>
+  ${cats.map(cat=>`
+  <div class="card-title">${cat}</div>
+  <table class="tbl"><thead><tr><th>Produto</th><th>Preço</th><th>Custo</th><th>CMV%</th><th>Status</th></tr></thead><tbody>
+  ${S.fichas.filter(f=>f.categoria===cat).map(f=>`
+    <tr>
+      <td>${esc(f.nome)}</td>
+      <td>R$&thinsp;${fmt(f.preco_venda)}</td>
+      <td>R$&thinsp;${fmt(f.custo)}</td>
+      <td style="color:${(+f.cmv_item_pct||0)>(+S.config.meta_cmv_pct||28)?'var(--danger)':'var(--green)'}">${pct(f.cmv_item_pct||0)}</td>
+      <td>${badge(f.ativo?'Ativo':'Esgotado',f.ativo?'badge-green':'badge-danger')}</td>
+    </tr>`).join('')}
+  </tbody></table>`).join('')||'<div style="color:var(--muted)">Nenhuma ficha cadastrada.</div>'}`;
+}
+
+function showNovaFicha(){alert('Formulário de nova ficha (integração com API /fichas em produção).');}
+
+function renderPromoContent(){
+  const fichaOpts=S.fichas.map((f,idx)=>`<option value="${idx}" data-preco="${f.preco_venda}" data-custo="${f.custo}">${esc(f.nome)} — R$&thinsp;${fmt(f.preco_venda)}</option>`).join('');
+  return `<div class="card">
+  <div class="card-title">🏷️ Criar Promoção</div>
+  <form id="f" onsubmit="calcPromo(event)">
+    <div class="fgroup"><label>Produto</label><select id="s1">${fichaOpts}</select></div>
+    <div class="frow">
+      <div class="fgroup"><label>Tipo de desconto</label><select id="s2"><option value="pct">Percentual (%)</option><option value="val">Valor fixo (R$)</option></select></div>
+      <div class="fgroup"><label>Valor</label><input id="s3" type="number" min="0" step="0.01" value="20" required/></div>
+    </div>
+    <button class="btn">Calcular impacto</button>
+  </form>
+  <div id="pinfo" style="margin-top:12px"></div>
+</div>`;
+}
+
+function calcPromo(e){
+  if(e)e.preventDefault();
+  const val=$('s1').value;
+  const f=S.fichas[+val]||S.fichas.find(f=>f.nome===val);
+  if(!f){alert('Selecione um produto.');return;}
+  const tipo=$('s2').value;const v=+$('s3').value||0;
+  const precoNovo=tipo==='pct'?f.preco_venda*(1-v/100):f.preco_venda-v;
+  const metaCmv=S.config.meta_cmv_pct||28;
+  const cmvNovo=f.custo/precoNovo*100;
+  const col=cmvNovo>metaCmv?'var(--danger)':'var(--green)';
+  $('pinfo').innerHTML=`<div class="card" style="margin:0">
+    <div>Preço original: <strong>R$ ${fmt(f.preco_venda)}</strong></div>
+    <div>Preço promocional: <strong style="color:var(--warn)">R$ ${fmt(precoNovo)}</strong></div>
+    <div>CMV do item: <strong style="color:${col}">${pct(cmvNovo)}</strong> (meta: ${pct(metaCmv)})</div>
+    ${cmvNovo>metaCmv?`<div style="color:var(--danger);margin-top:4px">⚠️ Promoção acima da meta de CMV!</div>`:`<div style="color:var(--green);margin-top:4px">✅ Dentro da meta.</div>`}
+  </div>`;
+}
+
+function renderPromo(){
+  $('view').innerHTML=`<div class="section-title">🏷️ Promoções</div>${renderPromoContent()}`;
+}
+
+function renderCardapioPublico(){
+  const slug=S.config.slug||'meu-negocio';
+  return `<div class="card">
+    <div class="card-title">🌐 Link do Cardápio Digital</div>
+    <div style="font-size:13px;margin-bottom:8px">Compartilhe com seus clientes:</div>
+    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-family:monospace;font-size:12px;word-break:break-all">${esc(API||'https://suaapi.com')}/publico/${esc(slug)}/cardapio</div>
+    <button class="btn-ghost btn-sm" style="margin-top:8px" onclick="abrirCliente()">👁 Visualizar como cliente</button>
+  </div>`;
+}
+
+function abrirCliente(){
+  const slug=S.config.slug||'meu-negocio';
+  const url=API?`${API}/publico/${slug}/cardapio`:'#cardapio';
+  window.open(url,'_blank');
+}
+function fecharCliente(){/* modal placeholder */}
+
+/* ============================================================
+   ESTOQUE
+============================================================ */
+function renderEst(){
+  $('view').innerHTML=`
+  <div class="section-title">📦 Estoque</div>
+  <div class="sub-tabs">
+    <button class="sub-tab act" onclick="goEstTab('est',this)">Saldo atual</button>
+    <button class="sub-tab" onclick="goEstTab('prod',this)">Insumos</button>
+    <button class="sub-tab" onclick="goEstTab('comp',this)">Compras</button>
+  </div>
+  <div id="estSub">${renderEstSaldo()}</div>`;
+}
+
+function goEstTab(t,btn){
+  document.querySelectorAll('#view .sub-tab').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  if(t==='est')$('estSub').innerHTML=renderEstSaldo();
+  else if(t==='prod')$('estSub').innerHTML=renderProdContent();
+  else if(t==='comp')$('estSub').innerHTML=renderCompContent();
+}
+
+function renderEstSaldo(){
+  const total=S.estoque.reduce((a,p)=>a+(+p.valor||0),0);
+  return `<div class="stat" style="margin-bottom:12px"><div class="stat-label">Valor total em estoque</div><div class="stat-val">R$&thinsp;${fmt(total)}</div></div>
+  <table class="tbl"><thead><tr><th>Produto</th><th>Saldo</th><th>Un</th><th>Custo médio</th><th>Valor</th></tr></thead><tbody>
+  ${S.estoque.map(p=>`<tr>
+    <td>${esc(p.nome)}</td>
+    <td style="color:${(+p.saldo||0)<=2?'var(--danger)':'var(--text)'}">${(+p.saldo||0).toFixed(2)}</td>
+    <td>${esc(p.unidade||'un')}</td>
+    <td>R$&thinsp;${fmt(p.custo||0)}</td>
+    <td>R$&thinsp;${fmt(p.valor||0)}</td>
+  </tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted)">Sem produtos.</td></tr>'}
+  </tbody></table>`;
+}
+
+function renderProd(){renderEst();}
+
+function renderProdContent(){
+  return `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-sm" onclick="showNovoProd()">+ Novo insumo</button></div>
+  <table class="tbl"><thead><tr><th>Nome</th><th>Un.</th><th>Custo médio</th></tr></thead><tbody>
+  ${S.produtos.map(p=>`<tr><td>${esc(p.nome)}</td><td>${esc(p.unidade||'un')}</td><td>R$&thinsp;${fmt(p.custo||0)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--muted)">Sem insumos.</td></tr>'}
+  </tbody></table>`;
+}
+function showNovoProd(){alert('Formulário de novo insumo (integração API /produtos).');}
+
+function renderComp(){renderEst();goEstTab('comp',document.querySelector('#view .sub-tab:nth-child(3)'));}
+
+function renderCompContent(){
+  return `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-sm" onclick="showNovaCompra()">+ Registrar compra</button></div>
+  ${S.compras.length?`<table class="tbl"><thead><tr><th>Data</th><th>Fornecedor</th><th>Produto</th><th>Qtd</th><th>Total</th></tr></thead><tbody>
+  ${S.compras.map(c=>`<tr><td>${esc(c.data)}</td><td>${esc(c.fornecedor)}</td><td>${esc(c.produto)}</td><td>${c.quantidade}</td><td>R$&thinsp;${fmt(c.total)}</td></tr>`).join('')}
+  </tbody></table>`:'<div style="color:var(--muted)">Nenhuma compra registrada.</div>'}`;
+}
+function showNovaCompra(){alert('Formulário de compra (integração API /compras).');}
+
+/* ============================================================
+   FINANCEIRO (fech / ven / per / rel)
+============================================================ */
+function renderFech(){
+  $('view').innerHTML=`
+  <div class="section-title">💰 Financeiro</div>
+  <div class="sub-tabs">
+    <button class="sub-tab act" onclick="goFinTab('fech',this)">Fechamento</button>
+    <button class="sub-tab" onclick="goFinTab('ven',this)">Vendas</button>
+    <button class="sub-tab" onclick="goFinTab('per',this)">Perdas</button>
+    <button class="sub-tab" onclick="goFinTab('rel',this)">Relatórios</button>
+  </div>
+  <div id="finSub">${renderFechContent()}</div>`;
+}
+
+function goFinTab(t,btn){
+  document.querySelectorAll('#view .sub-tab').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  const map={fech:renderFechContent,ven:renderVenContent,per:renderPerContent,rel:renderRelContent};
+  if(map[t])$('finSub').innerHTML=map[t]();
+}
+
+function renderVen(){renderFech();const b=document.querySelector('#view .sub-tab:nth-child(2)');if(b)goFinTab('ven',b);}
+function renderPer(){renderFech();const b=document.querySelector('#view .sub-tab:nth-child(3)');if(b)goFinTab('per',b);}
+function renderRel(){renderFech();const b=document.querySelector('#view .sub-tab:nth-child(4)');if(b)goFinTab('rel',b);}
+
+function renderFechContent(){
+  const meta=S.config.meta_cmv_pct||28;
+  return `<div class="card">
+  <div class="card-title">📋 Novo fechamento diário</div>
+  <form onsubmit="submitFechamento(event)">
+    <div class="frow">
+      <div class="fgroup"><label>Data *</label><input type="date" id="fData" value="${hoje()}" required/></div>
+      <div class="fgroup"><label>Faturamento (R$) *</label><input id="fFat" type="number" min="0.01" step="0.01" required placeholder="1200.00"/></div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label>Estoque inicial (R$)</label><input id="fEi" type="number" min="0" step="0.01" value="0"/></div>
+      <div class="fgroup"><label>Compras líquidas (R$)</label><input id="fCl" type="number" min="0" step="0.01" value="0"/></div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label>Estoque final (R$) *</label><input id="fEf" type="number" min="0" step="0.01" required placeholder="0"/></div>
+      <div class="fgroup"><label>Perdas (R$)</label><input id="fPerd" type="number" min="0" step="0.01" value="0"/></div>
+    </div>
+    <div id="fRes" style="margin-top:8px"></div>
+    <button class="btn" style="margin-top:8px">Calcular / Fechar dia</button>
+  </form>
+  </div>
+  <div class="card">
+    <div class="card-title">📆 Histórico de fechamentos</div>
+    <table class="tbl"><thead><tr><th>Data</th><th>Faturamento</th><th>CMV %</th><th>Status</th></tr></thead><tbody>
+    ${S.fechamentos.map(f=>`<tr>
+      <td>${esc(f.data)}</td><td>R$&thinsp;${fmt(f.faturamento)}</td>
+      <td style="color:${(+f.cmv_pct||0)>meta?'var(--danger)':'var(--green)'}">${pct(f.cmv_pct)}</td>
+      <td>${badge(f.acima_da_meta?'Acima da meta':'OK',f.acima_da_meta?'badge-danger':'badge-green')}</td>
+    </tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Sem fechamentos.</td></tr>'}
+    </tbody></table>
+  </div>`;
+}
+
+function submitFechamento(e){
+  e.preventDefault();
+  const fat=+$('fFat').value,ei=+$('fEi').value,cl=+$('fCl').value,ef=+$('fEf').value,perd=+$('fPerd').value;
+  const cmv=ei+cl-ef;const cmvPct=fat>0?cmv/fat*100:0;const meta=S.config.meta_cmv_pct||28;
+  const mb=fat-cmv;
+  $('fRes').innerHTML=`<div class="card" style="margin:0">
+    <div>CMV: <strong>R$&thinsp;${fmt(cmv)}</strong></div>
+    <div>CMV %: <strong style="color:${cmvPct>meta?'var(--danger)':'var(--green)'}">${pct(cmvPct)}</strong> (meta: ${pct(meta)})</div>
+    <div>Margem bruta: <strong>R$&thinsp;${fmt(mb)}</strong></div>
+    ${cmvPct>meta?`<div style="color:var(--danger);margin-top:4px">⚠️ Acima da meta de CMV!</div>`:`<div style="color:var(--green);margin-top:4px">✅ Dentro da meta!</div>`}
+  </div>`;
+  if(API&&SES.token){
+    api('POST','/fechamentos',{data:$('fData').value,faturamento:fat,estoque_inicial:ei,compras_liquidas:cl,estoque_final:ef,perdas:perd}).then(async r=>{
+      if(r.ok){const d=await r.json();S.fechamentos.unshift(d.dados||d);renderFechContent&&$('finSub')&&($('finSub').innerHTML=renderFechContent());}
+    }).catch(()=>{});
+  }
+}
+
+function renderVenContent(){
+  const totalFat=S.vendas.reduce((a,v)=>a+(+v.faturamento||0),0);
+  const totalCusto=S.vendas.reduce((a,v)=>a+(+v.custo_teorico||0),0);
+  return `<div class="stat" style="margin-bottom:12px">
+    <div class="stat-label">Faturamento total hoje</div>
+    <div class="stat-val">R$&thinsp;${fmt(totalFat)}</div>
+    <div class="stat-sub">Custo teórico: R$&thinsp;${fmt(totalCusto)}</div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button class="btn btn-sm" onclick="showNovaVenda()">+ Registrar venda</button>
+  </div>
+  <form id="f" onsubmit="submitVenda(event)" style="display:none">
+    <div class="frow">
+      <div class="fgroup"><label>Produto (ficha) *</label><input id="s1" required placeholder="Hambúrguer da casa"/></div>
+      <div class="fgroup" style="max-width:80px"><label>Qtd *</label><input id="s2" type="number" min="1" step="1" required value="1"/></div>
+    </div>
+    <div class="fgroup"><label>Data</label><input type="date" id="vData" value="${hoje()}"/></div>
+    <button class="btn btn-sm">Registrar</button>
+  </form>
+  <table class="tbl"><thead><tr><th>Ficha</th><th>Qtd</th><th>Faturamento</th><th>Custo teórico</th></tr></thead><tbody>
+  ${S.vendas.map(v=>`<tr>
+    <td>${esc(v.ficha)}</td><td>${v.quantidade}</td>
+    <td>R$ ${fmt(v.faturamento)}</td>
+    <td>R$ ${fmt(v.custo_teorico)}</td>
+  </tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Sem vendas.</td></tr>'}
+  </tbody></table>`;
+}
+
+function showNovaVenda(){const f=document.getElementById('f');if(f)f.style.display=f.style.display==='none'?'block':'none';}
+
+function submitVenda(e){
+  e.preventDefault();
+  const ficha=$('s1').value.trim();const qtd=+$('s2').value||1;
+  const f=S.fichas.find(fi=>fi.nome.toLowerCase()===ficha.toLowerCase());
+  const preco=f?f.preco_venda:0;const custo=f?f.custo*qtd:0;
+  const fat=preco*qtd;
+  S.vendas.push({data:$('vData')?.value||hoje(),ficha,quantidade:qtd,faturamento:fat,custo_teorico:custo});
+  renderFech();goFinTab('ven',document.querySelector('#view .sub-tab:nth-child(2)'));
+  if(API&&SES.token)api('POST','/vendas',{ficha,quantidade:qtd,data:$('vData')?.value||hoje()}).catch(()=>{});
+}
+
+function renderPerContent(){
+  return `<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button class="btn btn-sm" onclick="showNovaPerd()">+ Registrar perda</button>
+  </div>
+  ${S.perdas.length?`<table class="tbl"><thead><tr><th>Produto</th><th>Qtd</th><th>Motivo</th><th>Valor</th></tr></thead><tbody>
+  ${S.perdas.map(p=>`<tr><td>${esc(p.produto)}</td><td>${p.quantidade}</td><td>${badge(p.motivo,'badge-warn')}</td><td>R$&thinsp;${fmt(p.valor)}</td></tr>`).join('')}
+  </tbody></table>`:'<div style="color:var(--muted)">Nenhuma perda registrada.</div>'}`;
+}
+function showNovaPerd(){alert('Formulário de perda (integração API /perdas).');}
+
+function renderRelContent(){
+  const metaCmv=S.config.meta_cmv_pct||28;
+  const totalFat=S.fechamentos.reduce((a,f)=>a+(+f.faturamento||0),0);
+  const cmvMedio=S.fechamentos.length?S.fechamentos.reduce((a,f)=>a+(+f.cmv_pct||0),0)/S.fechamentos.length:0;
+  return `<div class="grid2">
+    <div class="stat"><div class="stat-label">Faturamento total</div><div class="stat-val">R$&thinsp;${fmt(totalFat)}</div></div>
+    <div class="stat"><div class="stat-label">CMV médio do período</div><div class="stat-val" style="color:${cmvMedio>metaCmv?'var(--danger)':'var(--green)'}">${pct(cmvMedio)}</div></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-title">📋 Resumo por fechamento</div>
+    <table class="tbl"><thead><tr><th>Data</th><th>Faturamento</th><th>CMV %</th></tr></thead><tbody>
+    ${S.fechamentos.map(f=>`<tr>
+      <td>${esc(f.data)}</td><td>R$&thinsp;${fmt(f.faturamento)}</td>
+      <td style="color:${(+f.cmv_pct||0)>metaCmv?'var(--danger)':'var(--green)'}">${pct(f.cmv_pct)}</td>
+    </tr>`).join('')||'<tr><td colspan="3" style="color:var(--muted)">Sem dados.</td></tr>'}
+    </tbody></table>
+    <button class="btn-ghost btn-sm" style="margin-top:8px" onclick="exportCSV()">⬇ Exportar CSV</button>
+  </div>`;
+}
+
+function exportCSV(){
+  const rows=[['Data','Faturamento','CMV%'],...S.fechamentos.map(f=>[f.data,f.faturamento,f.cmv_pct])];
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='stockpulse-relatorio.csv';a.click();
+}
+
+/* ============================================================
+   CLIENTES
+============================================================ */
+function renderCli(){
+  const recup=S.clientes.filter(c=>c.situacao==='recuperar');
+  $('view').innerHTML=`
+  <div class="section-title">👥 Clientes</div>
+  ${recup.length?`<div class="card" style="border-color:var(--warn)">
+    <div class="card-title" style="color:var(--warn)">⚠️ ${recup.length} cliente(s) para recuperar</div>
+    ${recup.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div><div style="font-weight:600">${esc(c.nome)}</div><div style="color:var(--muted);font-size:12px">${c.dias_sem_pedir} dias sem pedir · Favorito: ${esc(c.favorito||'—')}</div></div>
+      <a href="https://wa.me/${c.telefone||''}?text=${encodeURIComponent(`Olá ${c.nome}! Sentimos sua falta 😊 Volte logo!`)}" target="_blank" class="btn btn-sm" style="text-decoration:none">💬 WhatsApp</a>
+    </div>`).join('')}
+  </div>`:''}
+  <div class="card">
+    <div class="card-title">📋 Todos os clientes</div>
+    <table class="tbl"><thead><tr><th>Nome</th><th>Pedidos</th><th>Total</th><th>Última compra</th><th>Status</th></tr></thead><tbody>
+    ${S.clientes.map(c=>`<tr>
+      <td><div>${esc(c.nome)}</div><div style="font-size:11px;color:var(--muted)">${esc(c.telefone||'—')}</div></td>
+      <td>${c.pedidos}</td><td>R$&thinsp;${fmt(c.total)}</td><td>${esc(c.ultima_compra)}</td>
+      <td>${badge(c.situacao==='recuperar'?'Recuperar':'Ativo',c.situacao==='recuperar'?'badge-warn':'badge-green')}</td>
+    </tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted)">Sem clientes.</td></tr>'}
+    </tbody></table>
+  </div>`;
+}
+
+/* ============================================================
+   AJUSTES
+============================================================ */
+function renderCfg(){
+  if(ROLE==='Operador'){$('view').innerHTML='<p style="color:var(--muted);padding:40px;text-align:center">Acesso restrito.</p>';return;}
+  $('view').innerHTML=`
+  <div class="section-title">⚙️ Ajustes</div>
+  <div class="sub-tabs">
+    <button class="sub-tab act" onclick="goCfgTab('neg',this)">Negócio</button>
+    <button class="sub-tab" onclick="goCfgTab('marca',this)">Marca do cardápio digital</button>
+    <button class="sub-tab" onclick="goCfgTab('equipe',this)">Equipe</button>
+  </div>
+  <div id="cfgSub">${renderCfgNeg()}</div>`;
+}
+
+function goCfgTab(t,btn){
+  document.querySelectorAll('#view .sub-tab').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  const map={neg:renderCfgNeg,marca:renderCfgMarca,equipe:renderCfgEquipe};
+  if(map[t])$('cfgSub').innerHTML=map[t]();
+}
+
+function renderCfgNeg(){
+  return `<div class="card">
+  <div class="card-title">🏪 Dados do negócio</div>
+  <div class="fgroup"><label>Nome</label><input id="cNome" value="${esc(S.config.nome||'')}"/></div>
+  <div class="fgroup"><label>Meta de CMV (%)</label><input id="cMeta" type="number" min="1" max="100" step="0.1" value="${S.config.meta_cmv_pct||28}"/></div>
+  <div class="fgroup"><label>Tipo de negócio</label><select id="cTipo"><option value="">Genérico</option><option value="hamburgueria">Hamburgueria</option><option value="restaurante">Restaurante</option><option value="acai">Açaiteria</option><option value="bar">Bar</option><option value="pizzaria">Pizzaria</option></select></div>
+  <button class="btn btn-sm" onclick="salvarCfgNeg()">Salvar</button>
+  </div>`;
+}
+
+function salvarCfgNeg(){
+  S.config.nome=$('cNome').value.trim();
+  S.config.meta_cmv_pct=+$('cMeta').value||28;
+  if(API&&SES.token)api('PUT','/estabelecimento',{nome:S.config.nome,meta_cmv_pct:S.config.meta_cmv_pct}).catch(()=>{});
+  alert('Configurações salvas!');
+}
+
+function renderCfgMarca(){
+  return `<div class="card">
+  <div class="card-title">🎨 Marca do cardápio digital</div>
+  <div class="fgroup"><label>Nome da marca</label><input id="cMarca" value="${esc(S.config.marca_nome||S.config.nome||'')}"/></div>
+  <div class="fgroup"><label>Slogan</label><input id="cSlogan" value="${esc(S.config.slogan||'')}"/></div>
+  <div class="fgroup"><label>Slug do cardápio (URL)</label><input id="cSlug" value="${esc(S.config.slug||'meu-negocio')}"/></div>
+  <div class="fgroup"><label>WhatsApp (com DDD)</label><input id="cWpp" value="${esc(S.config.whatsapp||'')}"/></div>
+  <div class="fgroup"><label>Cor da marca (hex)</label><input id="cCor" type="color" value="${S.config.cor_marca||'#39ff6a'}"/></div>
+  <button class="btn btn-sm" onclick="salvarCfgMarca()">Salvar</button>
+  </div>`;
+}
+
+function salvarCfgMarca(){
+  S.config.marca_nome=$('cMarca').value.trim();S.config.slogan=$('cSlogan').value.trim();
+  S.config.slug=$('cSlug').value.trim();S.config.whatsapp=$('cWpp').value.trim();
+  S.config.cor_marca=$('cCor').value;
+  alert('Marca salva!');
+}
+
+function renderCfgEquipe(){
+  return `<div class="card"><div class="card-title">👤 Equipe</div>
+  <p style="color:var(--muted);font-size:13px">Para convidar membros, use a API ou o painel do Supabase.<br>Perfis: Administrador, Gerente, Operador.</p>
+  </div>`;
+}
+
+/* ============================================================
+   CHATBOT
+============================================================ */
+function toggleChat(){
+  _chatOpen=!_chatOpen;
+  $('chatPanel').classList.toggle('hidden',!_chatOpen);
+  if(_chatOpen&&!$('cpMsgs').children.length){
+    cpAddBot('👋 Olá! Sou o **StockPulse AI**.\n\nPosso responder dúvidas sobre **cardápio**, **pedidos** e **CMV**, ou registrar um **pedido de teste** direto na fila!',
+      ['Qual meu CMV este mês?','Ver cardápio','Pedidos em aberto?','Registrar pedido de teste']);
+    $('cpInput').focus();
+  }
+}
+
+function cpAddUser(txt){
+  const d=document.createElement('div');d.className='cp-msg u';
+  d.innerHTML=`<div class="cp-bubble">${esc(txt)}</div><div class="cp-time">${agora()}</div>`;
+  $('cpMsgs').appendChild(d);cpScroll();
+}
+
+function cpAddBot(txt,sugs=[]){
+  const fmtd=txt.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>');
+  const d=document.createElement('div');d.className='cp-msg b';
+  d.innerHTML=`<div class="cp-bubble">${fmtd}</div>
+    ${sugs.length?`<div class="cp-sugg">${sugs.map(s=>`<button class="cp-sugg-btn" onclick="cpUsar('${s.replace(/'/g,"\\'")}'">${esc(s)}</button>`).join('')}</div>`:''}
+    <div class="cp-time">${agora()}</div>`;
+  $('cpMsgs').appendChild(d);cpScroll();
+}
+
+function cpAddTyping(){
+  const d=document.createElement('div');d.className='cp-msg b';d.id='cpTyp';
+  d.innerHTML='<div class="cp-typing"><div class="cp-dot"></div><div class="cp-dot"></div><div class="cp-dot"></div></div>';
+  $('cpMsgs').appendChild(d);cpScroll();
+}
+function cpRemTyping(){const e=$('cpTyp');if(e)e.remove();}
+
+function cpScroll(){$('cpMsgs').scrollTop=$('cpMsgs').scrollHeight;}
+
+async function cpEnviar(){
+  const inp=$('cpInput');const txt=inp.value.trim();
+  if(!txt||_cpEnviando)return;
+  inp.value='';cpResize(inp);
+  cpAddUser(txt);_cpHist.push({role:'user',content:txt});
+  _cpEnviando=true;$('cpSend').disabled=true;
+  cpAddTyping();
+  try{
+    const m=txt.toLowerCase();
+    const token=SES.token||localStorage.getItem('sp_token')||'';
+
+    // Ação: registrar pedido de teste direto na fila
+    if(/pedido.*teste|registrar.*pedido|simular.*pedido|testar.*pedido/.test(m)){
+      const itemRef=S.fichas[0]||{nome:'Hambúrguer da casa',preco_venda:28};
+      let num=Math.max(...S.pedidos.map(p=>p.numero),100)+1;
+      let total=itemRef.preco_venda||28;
+      if(API&&token){
+        try{
+          const rp=await fetch(API+'/pedidos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({cliente_nome:'Pedido Teste (Chat)',canal:'Balcão',pagamento:'Pix',observacao:'Gerado via StockPulse AI',itens:[{ficha:itemRef.nome,quantidade:1}]})});
+          if(rp.ok){const dp=await rp.json();const res=dp.dados||dp;if(res.numero)num=res.numero;if(res.total)total=+res.total;}
+        }catch(_){}
+      }
+      S.pedidos.unshift({id:Date.now(),numero:num,status:'novo',canal:'Balcão',cliente_nome:'Pedido Teste (Chat)',pagamento:'Pix',total,criado_em:new Date().toISOString(),visto:false,itens:[{nome:itemRef.nome,quantidade:1,preco_unit:total}]});
+      atualizarBadge();
+      if(_curView==='ped')renderPed();
+      cpRemTyping();
+      cpAddBot(`✅ Pedido de teste **#${num}** registrado na fila!\n\n• Item: 1× ${itemRef.nome}\n• Total: R$ ${fmt(total)}\n• Status: **Novo**`,['Abrir fila de pedidos','Ver cardápio']);
+      return;
+    }
+
+    // Consulta rápida de cardápio (/fichas)
+    if(/card[aá]pio|menu|itens|produtos/.test(m)&&!/estoque/.test(m)){
+      let fichas=S.fichas;
+      if(API&&token){
+        try{const rf=await fetch(API+'/fichas',{headers:{'Authorization':'Bearer '+token}});if(rf.ok){const df=await rf.json();fichas=df.dados||df;}}catch(_){}
+      }
+      cpRemTyping();
+      const ativos=fichas.filter(f=>f.ativo!==false);
+      if(!ativos.length){cpAddBot('🍽️ Nenhum item ativo encontrado no cardápio.');return;}
+      const lista=ativos.slice(0,8).map(f=>`• **${f.nome}** — R$ ${fmt(f.preco_venda)}`).join('\n');
+      cpAddBot(`🍽️ **Cardápio (${ativos.length} itens ativos)**\n\n${lista}`,['Registrar pedido de teste','Qual meu CMV este mês?']);
+      return;
+    }
+
+    // Consulta rápida de pedidos (/pedidos)
+    if(/pedido|fila|cozinha|em aberto/.test(m)){
+      let peds=S.pedidos;
+      if(API&&token){
+        try{const rp=await fetch(API+'/pedidos',{headers:{'Authorization':'Bearer '+token}});if(rp.ok){const dp=await rp.json();peds=dp.dados||dp;}}catch(_){}
+      }
+      cpRemTyping();
+      const abertos=peds.filter(p=>!['entregue','cancelado'].includes(p.status));
+      if(!abertos.length){cpAddBot('🧾 Nenhum pedido em aberto na fila no momento.',['Registrar pedido de teste']);return;}
+      const lista=abertos.slice(0,6).map(p=>`• **#${p.numero}** (${p.status}) — ${p.cliente_nome} · R$ ${fmt(p.total)}`).join('\n');
+      cpAddBot(`🧾 **Pedidos em aberto (${abertos.length})**\n\n${lista}`,['Registrar pedido de teste','Qual meu CMV este mês?']);
+      return;
+    }
+
+    if(!API||!token){
+      cpRemTyping();
+      cpAddBot('⚠️ Autentique-se primeiro para consultar a API.',['Registrar pedido de teste','Ver cardápio']);
+      return;
+    }
+    const r=await fetch(API+'/chatbot',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({mensagem:txt,historico:_cpHist.slice(-10)})});
+    cpRemTyping();
+    if(r.status===401){cpAddBot('🔐 Token inválido. Faça login novamente.');return;}
+    if(!r.ok){const e=await r.json().catch(()=>({}));cpAddBot(`⚠️ Erro ${r.status}: ${e.detail||'Tente novamente.'}`);return;}
+    const data=await r.json();const d=data.dados||data;
+    cpAddBot(d.resposta||'Sem resposta.',d.sugestoes||[]);
+    _cpHist.push({role:'assistant',content:d.resposta||''});
+    if(_cpHist.length>20)_cpHist=_cpHist.slice(-20);
+  }catch(err){
+    cpRemTyping();
+    if(err.name==='TypeError')cpAddBot('⚠️ Não consegui conectar à API. Verifique se ela está rodando.');
+    else cpAddBot('⚠️ Erro: '+err.message);
+  }finally{_cpEnviando=false;$('cpSend').disabled=false;$('cpInput').focus();}
+}
+
+function cpUsar(txt){if(txt==='Abrir fila de pedidos'){go('ped');return;}$('cpInput').value=txt;cpEnviar();}
+function cpKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();cpEnviar();}}
+function cpResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+/* ============================================================
+   STARTUP
+============================================================ */
+window.addEventListener('DOMContentLoaded',()=>{
+  if(handleHash())return;
+  if(!API){
+    showMsg('aLmsg','O endereço da API não foi configurado neste arquivo HTML.');
+  }
+  tentarRestaurarSessao();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "tests_front",
+  "version": "1.0.0",
+  "description": "Rodam a página com um navegador simulado (jsdom) e um servidor falso: não precisam de internet nem de banco.",
+  "main": "t7.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "jsdom": "^31.0.1"
+  }
+}
