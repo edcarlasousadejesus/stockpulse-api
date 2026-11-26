@@ -121,9 +121,6 @@ def fazer_pedido(slug: str, p: PedidoPublicoIn, req: Request, conn=Depends(get_c
         "insert into auditoria (estabelecimento_id, usuario_nome, perfil, acao) values (%s, 'cardápio', 'cliente', %s)",
         (e["id"], f"pedido #{r['numero']} recebido pelo cardápio"),
     )
-    limitar((ip_do_cliente(req), slug))
-    r = criar_pedido(conn, e["id"], p.cliente_nome, p.cliente_telefone, "Cardápio", "A combinar", p.observacao, p.itens)
-    conn.execute("insert into auditoria (estabelecimento_id, usuario_nome, perfil, acao) values (%s, 'cardápio', 'cliente', %s)", (e["id"], f"pedido #{r['numero']} recebido pelo cardápio"))
     conn.commit()
     return resp({"numero": r["numero"], "total": r["total"], "mensagem": "Pedido recebido! Em instantes o restaurante confirma."}, 201)
 
