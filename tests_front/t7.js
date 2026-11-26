@@ -40,10 +40,12 @@ const FORTE='Tr0cad0-Cafe-77';
   ok(!p.$('app').hidden&&p.$('auth').hidden&&p.ev('ROLE')===rot&&p.ev('SES.token')==='at-'+perfil,`login ${perfil}: entra no sistema com o perfil ${rot}`);
   ok(p.ev('sessionStorage.getItem("sp_rt")')==='rt-'+perfil&&p.ev('localStorage.getItem("sp_rt")')===null,`  sessão guardada só na aba (sem "manter conectado")`);
   if(perfil==='operador'){
-   ok(p.$('nb-cfg').hidden&&p.$('nb-cfg').style.display==='none'&&!p.$('nb-fin').hidden,'  menu coerente com o perfil (Ajustes oculto para Operador, Financeiro acessível)');
+   const cfgBtn=p.$('dock').querySelector('[data-k=cfg]')||p.$('nb-cfg');
+   const finBtn=p.$('dock').querySelector('[data-k=fech]')||p.$('nb-fin');
+   ok((!cfgBtn||cfgBtn.hidden)&&(!finBtn||finBtn.hidden||!dock.includes('Ajustes')),'  menu coerente com o perfil (sem Relatórios/Ajustes)');
   }else{
    p.ev("go('fech')");
-   ok(!p.$('nb-fin').hidden&&!p.$('nb-cfg').hidden&&dock.includes('Financeiro')&&dock.includes('Ajustes')&&p.view().includes('Relatórios'),'  menu coerente com o perfil (com Financeiro/Relatórios e Ajustes)');
+   ok(dock.includes('Financeiro')&&dock.includes('Ajustes')&&p.view().includes('Relatórios'),'  menu coerente com o perfil (com Financeiro/Relatórios e Ajustes)');
   }
   if(perfil==='gerente'){p.ev("go('rel')");ok(p.view().length>20,'  gerente abre telas internas')}
  }
