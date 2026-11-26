@@ -8,18 +8,18 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import auth, calc, chatbot, config, contas, operacao, pedidos, publico, whatsapp
+from . import auth, calc, chatbot, complemento, config, contas, ia, operacao, pedidos, publico, whatsapp
 from .core import Ctx, auditar, contexto, get_conn, log, pool, resp, so_gestao
 
 
 PRODUCAO = os.environ.get("STOCKPULSE_ENV") == "producao"
-# Em produção a documentação interativa fica desligada (ela mostra toda a superfície da API)
+# Em produção a documentação interativa fica desligada (ela mostra toda a superfície a API)
 app = FastAPI(title="StockPulse API", version="0.5.0", docs_url=None if PRODUCAO else "/docs",
               redoc_url=None if PRODUCAO else "/redoc", openapi_url=None if PRODUCAO else "/openapi.json")
 ORIGENS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
 if ORIGENS:  # endereços do seu site que podem chamar a API pelo navegador
-    app.add_middleware(CORSMiddleware, allow_origins=ORIGENS, allow_methods=["GET", "POST", "PUT"], allow_headers=["Authorization", "Content-Type"], allow_credentials=False)
-for r in (contas.router, operacao.router, pedidos.router, config.router, publico.router, chatbot.router, whatsapp.router):
+    app.add_middleware(CORSMiddleware, allow_origins=ORIGENS, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"], allow_credentials=False)
+for r in (contas.router, operacao.router, pedidos.router, config.router, publico.router, chatbot.router, whatsapp.router, ia.router, complemento.router):
     app.include_router(r)
 
 

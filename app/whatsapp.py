@@ -24,24 +24,71 @@ GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 WHATSAPP_API_URL = os.environ.get("WHATSAPP_API_URL", "")
+WHATSAPP_AUDIO_API_URL = os.environ.get("WHATSAPP_AUDIO_API_URL", "")
 WHATSAPP_API_TOKEN = os.environ.get("WHATSAPP_API_TOKEN", "")
 WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN", "stockpulse-verify")
+ELEVENLABS_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+ELEVENLABS_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
 
 # Registro em memória dos últimos avisos disparados (observabilidade e testes)
 _NOTIFICACOES: list[dict] = []
 
 MENSAGENS_STATUS = {
-    "preparo": "👨‍🍳 Olá {nome}! Seu pedido #{numero} entrou *Em preparo* na cozinha.",
+    "novo": "✅ Olá {nome}! Recebemos seu pedido #{numero}. Em breve ele entra em preparo!",
+    "preparo": "👨‍🍳 Olá {nome}! Seu pedido #{numero} entrou *Em preparo* na cozinha. Previsão: ~{previsao} min.",
     "pronto": "✅ Olá {nome}! Seu pedido #{numero} está *Pronto*!",
     "entregue": "🎉 Olá {nome}! Seu pedido #{numero} foi *Concluído*. Obrigado pela preferência!",
 }
 
+STATUS_COM_TTS = {"novo", "preparo", "pronto"}
+
+
+def gerar_audio_tts(texto: str, voice: Optional[str] = None) -> Optional[tuple[bytes, str]]:
+    """Gera áudio TTS (OpenAI ou ElevenLabs). Retorna (bytes, provedor) ou None para fallback em texto."""
+    limpo = re.sub(r"[*`_✅👨‍🍳🎉🍽️💡]", "", texto).strip()
+    if not limpo:
+        return None
+    if OPENAI_KEY:
+        try:
+            r = httpx.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers={"Authorization": f"Bearer {OPENAI_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": os.environ.get("OPENAI_TTS_MODEL", "tts-1"),
+                    "voice": voice or os.environ.get("OPENAI_TTS_VOICE", "nova"),
+                    "input": limpo,
+                    "response_format": "opus",
+                },
+                timeout=20,
+            )
+            r.raise_for_status()
+            if r.content:
+                return r.content, "openai"
+        except Exception as e:
+            log.warning("Falha no TTS OpenAI (fallback em texto): %s", e)
+
+    if ELEVENLABS_KEY:
+        try:
+            r = httpx.post(
+                f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}",
+                headers={"xi-api-key": ELEVENLABS_KEY, "Content-Type": "application/json"},
+                json={"text": limpo, "model_id": "eleven_multilingual_v2"},
+                timeout=20,
+            )
+            r.raise_for_status()
+            if r.content:
+                return r.content, "elevenlabs"
+        except Exception as e:
+            log.warning("Falha no TTS ElevenLabs (fallback em texto): %s", e)
+
+    return None
+
 
 def enviar_whatsapp(numero_destino: str, texto: str) -> bool:
-    """Envia mensagem via gateway WhatsApp configurado (WHATSAPP_API_URL). Best-effort."""
+    """Envia mensagem de texto via gateway WhatsApp configurado (WHATSAPP_API_URL). Best-effort."""
     if not numero_destino:
         return False
-    _NOTIFICACOES.append({"telefone": numero_destino, "mensagem": texto})
+    _NOTIFICACOES.append({"telefone": numero_destino, "mensagem": texto, "tipo": "texto"})
     if len(_NOTIFICACOES) > 200:
         del _NOTIFICACOES[:-200]
     if not WHATSAPP_API_URL:
@@ -58,13 +105,67 @@ def enviar_whatsapp(numero_destino: str, texto: str) -> bool:
         return False
 
 
-def notificar_status_whatsapp(numero: int, cliente_nome: str, cliente_telefone: Optional[str], novo_status: str) -> Optional[str]:
-    """Dispara aviso automático ao cliente quando o pedido muda para Em preparo, Pronto ou Concluído."""
+def enviar_whatsapp_audio(numero_destino: str, audio_bytes: bytes, legenda: str = "") -> bool:
+    """Envia áudio TTS pelo gateway WhatsApp (com fallback automático para texto se o gateway não aceitar áudio)."""
+    if not numero_destino:
+        return False
+    _NOTIFICACOES.append({"telefone": numero_destino, "mensagem": legenda, "tipo": "audio", "audio_bytes": len(audio_bytes)})
+    if len(_NOTIFICACOES) > 200:
+        del _NOTIFICACOES[:-200]
+    destino_url = WHATSAPP_AUDIO_API_URL or WHATSAPP_API_URL
+    if not destino_url:
+        log.info("WhatsApp Áudio TTS (simulado para %s, %d bytes): %s", numero_destino, len(audio_bytes), legenda)
+        return False
+    headers = {"Content-Type": "application/json"}
+    if WHATSAPP_API_TOKEN:
+        headers["Authorization"] = f"Bearer {WHATSAPP_API_TOKEN}"
+    b64 = base64.b64encode(audio_bytes).decode()
+    payload = {"number": numero_destino, "audio_base64": b64, "mediatype": "audio", "caption": legenda}
+    try:
+        r = httpx.post(destino_url, json=payload, headers=headers, timeout=10)
+        if r.is_success:
+            return True
+    except Exception as e:
+        log.warning("Falha ao enviar áudio WhatsApp para %s: %s", numero_destino, e)
+    # Fallback em texto caso o gateway de áudio falhe
+    if legenda:
+        return enviar_whatsapp(numero_destino, legenda)
+    return False
+
+
+def notificar_status_whatsapp(
+    numero: int,
+    cliente_nome: str,
+    cliente_telefone: Optional[str],
+    novo_status: str,
+    previsao_min: int = 20,
+    conn=None,
+    estab_id: Optional[str] = None,
+    uid: Optional[str] = None,
+) -> Optional[str]:
+    """Dispara aviso automático (TTS nos status-chave novo/preparo/pronto, com fallback em texto). Respeita bloqueios."""
     tpl = MENSAGENS_STATUS.get(novo_status)
     if not tpl or not cliente_telefone:
         return None
-    msg = tpl.format(nome=cliente_nome or "cliente", numero=numero)
-    enviar_whatsapp(cliente_telefone, msg)
+    voz = None
+    if conn is not None and estab_id:
+        from .complemento import esta_bloqueado, obter_assistente_estab
+        if esta_bloqueado(conn, estab_id, cliente_telefone):
+            return None
+        voz = obter_assistente_estab(conn, estab_id).get("voz_tts")
+    msg = tpl.format(nome=cliente_nome or "cliente", numero=numero, previsao=previsao_min)
+    enviado_audio = False
+    if novo_status in STATUS_COM_TTS:
+        tts = gerar_audio_tts(msg, voice=voz) if voz else gerar_audio_tts(msg)
+        if tts:
+            audio_bytes, provedor = tts
+            enviar_whatsapp_audio(cliente_telefone, audio_bytes, msg)
+            enviado_audio = True
+            if conn is not None and estab_id:
+                from .ia import registrar_uso_ia
+                registrar_uso_ia(conn, estab_id, uid, "whatsapp_tts", provedor, {"pedido": numero, "status": novo_status})
+    if not enviado_audio:
+        enviar_whatsapp(cliente_telefone, msg)
     return msg
 
 
@@ -129,12 +230,18 @@ def _extrair_itens_do_texto(texto: str, itens_disponiveis: list[dict]) -> list[I
     return encontrados
 
 
-def _interpretar_mensagem_ia(texto: str, itens_disponiveis: list[dict]) -> dict:
+def _interpretar_mensagem_ia(texto: str, itens_disponiveis: list[dict], assistente: Optional[dict] = None) -> dict:
     """Usa Gemini (quando configurado) ou parser determinístico para decidir ação (cardápio vs pedido confirmado)."""
     if GEMINI_KEY:
         lista = "\n".join(f"- {i['nome']} (R$ {i['preco']})" for i in itens_disponiveis)
+        a = assistente or {}
+        persona = (
+            f"Seu nome é {a.get('nome', 'Atendente StockPulse')}. "
+            f"Tom: {a.get('formalidade', 'equilibrado')}. "
+            f"{a.get('estilo', '')}"
+        ).strip()
         prompt = (
-            "Você é atendente de WhatsApp de um restaurante. Cardápio em estoque:\n"
+            f"Você é atendente de WhatsApp de um restaurante. {persona}\nCardápio em estoque:\n"
             f"{lista}\n\nMensagem do cliente: {texto}\n\n"
             'Retorne APENAS JSON puro: {"acao": "cardapio|pedido|duvida", "confirmado": true|false, '
             '"pagamento": "Pix|Cartão|Dinheiro|A combinar", "itens": [{"ficha": "nome exato", "quantidade": 1}], "resposta": "texto curto"}'
@@ -236,6 +343,11 @@ async def webhook_whatsapp(req: Request, conn=Depends(get_conn)):
         raise HTTPException(422, "envie texto ou áudio (.ogg)")
 
     estab = _resolver_estabelecimento(conn, slug, estab_id)
+    from .complemento import esta_bloqueado, marcar_carrinho_recuperado, obter_assistente_estab, registrar_carrinho_aberto, sugerir_cross_sell
+    if tel_limpo and esta_bloqueado(conn, estab["id"], tel_limpo):
+        return resp({"bloqueado": True, "transcricao": transcricao, "resposta": None, "pedido": None})
+
+    assistente = obter_assistente_estab(conn, estab["id"])
     cats = itens_cardapio(conn, estab["id"], filtrar_estoque=True)
     itens_disponiveis = [it for c in cats for it in c["itens"]]
 
@@ -245,7 +357,7 @@ async def webhook_whatsapp(req: Request, conn=Depends(get_conn)):
             enviar_whatsapp(tel_limpo, msg)
         return resp({"resposta": msg, "transcricao": transcricao, "pedido": None})
 
-    interp = _interpretar_mensagem_ia(texto, itens_disponiveis)
+    interp = _interpretar_mensagem_ia(texto, itens_disponiveis, assistente)
     pedido_criado = None
 
     if interp.get("confirmado") and interp.get("itens"):
@@ -261,15 +373,18 @@ async def webhook_whatsapp(req: Request, conn=Depends(get_conn)):
             f"Via WhatsApp: {texto[:240]}",
             itens_in,
         )
+        marcar_carrinho_recuperado(conn, estab["id"], tel_limpo)
         conn.execute(
             "insert into auditoria (estabelecimento_id, usuario_nome, perfil, acao) values (%s, 'whatsapp-ia', 'cliente', %s)",
             (estab["id"], f"pedido #{pedido_criado['numero']} confirmado via WhatsApp"),
         )
         conn.commit()
+        sug = sugerir_cross_sell(conn, estab["id"], [i.ficha for i in itens_in], limite=2)
+        extra_cs = ("\n💡 Que tal adicionar: " + ", ".join(f"{s['nome']} (R$ {s['preco']})" for s in sug) + "?") if sug else ""
         resposta = (
             f"✅ Pedido #{pedido_criado['numero']} confirmado!\n"
             f"Total: R$ {pedido_criado['total']}\n"
-            "Status: Novo · Avisaremos por aqui quando entrar em preparo e ficar pronto."
+            f"Status: Novo · Avisaremos por aqui quando entrar em preparo e ficar pronto.{extra_cs}"
         )
     elif interp.get("acao") == "cardapio":
         linhas = [f"🍽️ *Cardápio disponível ({estab['marca_nome'] or estab['nome']}):*"]
@@ -278,12 +393,28 @@ async def webhook_whatsapp(req: Request, conn=Depends(get_conn)):
         linhas.append("\nPara pedir, envie os itens e diga *confirmar*!")
         resposta = "\n".join(linhas)
     else:
-        resposta = interp.get("resposta") or (
-            f"Olá {nome}! Temos {len(itens_disponiveis)} item(ns) disponível(is) hoje. "
+        if interp.get("itens") and tel_limpo:
+            registrar_carrinho_aberto(conn, estab["id"], tel_limpo, nome, interp["itens"], Decimal("0"), "WhatsApp")
+            conn.commit()
+        sug = sugerir_cross_sell(conn, estab["id"], [i["ficha"] for i in (interp.get("itens") or [])], limite=2)
+        extra_cs = ("\n💡 Sugestão para acompanhar: " + ", ".join(f"{s['nome']} (R$ {s['preco']})" for s in sug)) if sug else ""
+        resposta = (interp.get("resposta") or (
+            f"Olá {nome}! Aqui é {assistente['nome']}. Temos {len(itens_disponiveis)} item(ns) disponível(is) hoje. "
             "Peça o *cardápio* ou informe o que deseja + *confirmar* para registrar seu pedido."
-        )
+        )) + extra_cs
 
     if tel_limpo:
-        enviar_whatsapp(tel_limpo, resposta)
+        if pedido_criado:
+            notificar_status_whatsapp(
+                pedido_criado["numero"],
+                nome,
+                tel_limpo,
+                "novo",
+                conn=conn,
+                estab_id=estab["id"],
+            )
+            conn.commit()
+        else:
+            enviar_whatsapp(tel_limpo, resposta)
 
     return resp({"resposta": resposta, "transcricao": transcricao, "pedido": pedido_criado}, 201 if pedido_criado else 200)

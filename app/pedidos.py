@@ -110,19 +110,112 @@ def avancar(numero: int, ctx: Ctx = Depends(contexto), conn=Depends(get_conn)):
     novo, negativos = FLUXO[FLUXO.index(p["status"]) + 1], []
     if novo == "entregue":
         dia = hoje()
+        total_ped = D(0)
         for it in conn.execute("select ficha_id, quantidade, preco_unit from itens_pedido where pedido_id = %s", (p["id"],)).fetchall():
+            total_ped += D(it["quantidade"]) * D(it["preco_unit"])
             if it["ficha_id"] is None:
                 continue  # produto removido depois do pedido: segue sem baixa
             f = conn.execute("select id, outros_custos from fichas_tecnicas where id = %s", (it["ficha_id"],)).fetchone()
             negativos += registrar_venda(conn, ctx, f, it["quantidade"], it["preco_unit"], dia, p["id"])[1]
         conn.execute("update pedidos set status = %s, concluido_em = now(), visto = true where id = %s", (novo, p["id"]))
+        if p["cliente_telefone"] and total_ped > 0:
+            from .complemento import creditar_fidelidade
+            creditar_fidelidade(conn, ctx.estab, p["cliente_telefone"], total_ped)
     else:
         conn.execute("update pedidos set status = %s, visto = true where id = %s", (novo, p["id"]))
     auditar(conn, ctx, f"pedido #{numero}: {novo}")
+    _registrar_etapa_bd(conn, p["id"], novo)
     conn.commit()
     from .whatsapp import notificar_status_whatsapp
-    aviso = notificar_status_whatsapp(numero, p["cliente_nome"], p["cliente_telefone"], novo)
-    return resp({"numero": numero, "status": novo, "estoque_negativo": sorted(set(negativos)), "aviso_whatsapp": aviso})
+    previsao = _tempo_preparo_medio(conn, ctx.estab)
+    aviso = notificar_status_whatsapp(
+        numero, p["cliente_nome"], p["cliente_telefone"], novo,
+        previsao_min=previsao, conn=conn, estab_id=ctx.estab, uid=ctx.uid,
+    )
+    return resp({"numero": numero, "status": novo, "estoque_negativo": sorted(set(negativos)), "aviso_whatsapp": aviso, "tempo_preparo_medio_min": previsao})
+
+
+class EventoPedidoIn(BaseModel):
+    numero: int = Field(ge=1)
+    status: Status
+    cliente_nome: Optional[str] = Field(default=None, max_length=80)
+    cliente_telefone: Optional[str] = None
+    tempo_preparo_min: Optional[int] = Field(default=None, ge=0, le=600)
+    previsao_minutos: Optional[int] = Field(default=None, ge=1, le=180)
+    etapas: Optional[dict[str, str]] = None
+
+    _tel = field_validator("cliente_telefone")(lambda cls, v: telefone(v))
+
+
+def _registrar_etapa_bd(conn, pedido_id: str, status: str, tempo_preparo_min: Optional[int] = None) -> None:
+    """Atualiza timestamps de etapa e tempo de preparo (tolerante caso migração 004 ainda não tenha sido aplicada)."""
+    try:
+        if status == "preparo":
+            conn.execute("update pedidos set preparo_em = coalesce(preparo_em, now()) where id = %s", (pedido_id,))
+        elif status == "pronto":
+            conn.execute(
+                "update pedidos set pronto_em = coalesce(pronto_em, now()), "
+                "tempo_preparo_min = coalesce(%s, tempo_preparo_min, greatest(1, round(extract(epoch from (now() - preparo_em))/60)::int)) "
+                "where id = %s",
+                (tempo_preparo_min, pedido_id),
+            )
+        elif status == "entregue" and tempo_preparo_min is not None:
+            conn.execute("update pedidos set tempo_preparo_min = coalesce(tempo_preparo_min, %s) where id = %s", (tempo_preparo_min, pedido_id))
+    except Exception:
+        pass
+
+
+def _tempo_preparo_medio(conn, estab_id: str) -> int:
+    """Retorna tempo médio de preparo em minutos do estabelecimento (fallback: 20 min)."""
+    try:
+        r = conn.execute(
+            "select round(avg(tempo_preparo_min))::int media from pedidos where estabelecimento_id = %s and tempo_preparo_min is not null",
+            (estab_id,),
+        ).fetchone()
+        if r and r.get("media"):
+            return max(5, int(r["media"]))
+        e = conn.execute("select tempo_preparo_padrao_min from estabelecimentos where id = %s", (estab_id,)).fetchone()
+        if e and e.get("tempo_preparo_padrao_min"):
+            return int(e["tempo_preparo_padrao_min"])
+    except Exception:
+        pass
+    return 20
+
+
+@router.post("/pedidos/evento")
+def registrar_evento_pedido(ev: EventoPedidoIn, ctx: Ctx = Depends(contexto), conn=Depends(get_conn)):
+    """Recebe mudança de status do Kanban, grava timestamps/tempo de preparo e dispara aviso TTS/WhatsApp nos momentos-chave."""
+    p = conn.execute(
+        "select id, status, cliente_nome, cliente_telefone from pedidos where estabelecimento_id = %s and numero = %s",
+        (ctx.estab, ev.numero),
+    ).fetchone()
+    if p is not None:
+        if ev.status == "entregue":
+            conn.execute("update pedidos set status = %s, concluido_em = coalesce(concluido_em, now()), visto = true where id = %s", (ev.status, p["id"]))
+        else:
+            conn.execute("update pedidos set status = %s, visto = true where id = %s", (ev.status, p["id"]))
+        _registrar_etapa_bd(conn, p["id"], ev.status, ev.tempo_preparo_min)
+        nome_cli = ev.cliente_nome or p["cliente_nome"]
+        tel_cli = ev.cliente_telefone or p["cliente_telefone"]
+    else:
+        nome_cli = ev.cliente_nome or "Cliente"
+        tel_cli = ev.cliente_telefone
+
+    auditar(conn, ctx, f"evento pedido #{ev.numero}: {ev.status}")
+    from .whatsapp import notificar_status_whatsapp
+    previsao = ev.previsao_minutos or _tempo_preparo_medio(conn, ctx.estab)
+    aviso = notificar_status_whatsapp(
+        ev.numero, nome_cli, tel_cli, ev.status,
+        previsao_min=previsao, conn=conn, estab_id=ctx.estab, uid=ctx.uid,
+    )
+    conn.commit()
+    return resp({
+        "numero": ev.numero,
+        "status": ev.status,
+        "previsao_minutos": previsao,
+        "tempo_preparo_medio_min": previsao,
+        "aviso_whatsapp": aviso,
+    })
 
 
 @router.post("/pedidos/{numero}/cancelar")
