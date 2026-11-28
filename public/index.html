@@ -71,11 +71,11 @@ main{max-width:1320px;margin:0 auto;padding:8px 24px 92px}
 .cell.c8{grid-column:span 8}.cell.c6{grid-column:span 6}.cell.c4{grid-column:span 4}.cell.c7{grid-column:span 7}.cell.c5{grid-column:span 5}.cell.c12{grid-column:span 12}
 .cell h3{font-size:18px;line-height:1.25;letter-spacing:-.25px}
 .big{font-size:40px;line-height:1;letter-spacing:-.4px;font-weight:500;display:block;margin:10px 0 4px}
-.ruler{position:relative;height:44px;margin-top:14px}
-.ruler .tr{position:absolute;left:0;right:0;top:22px;height:10px;background:repeating-linear-gradient(90deg,var(--circuit) 0 1px,transparent 1px 2%);border-bottom:1px solid var(--circuit)}
-.mk{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font-size:11px;gap:3px;color:var(--sage60);transition:left 600ms ease-out}
-.mk::after{content:"";width:1px;height:22px;background:currentColor}
-.mk.cur{color:var(--lime)}.mk.cur::after{width:2px}
+.ruler{position:relative;height:58px;margin-top:14px}
+.ruler .tr{position:absolute;left:0;right:0;top:24px;height:10px;background:repeating-linear-gradient(90deg,var(--circuit) 0 1px,transparent 1px 2%);border-bottom:1px solid var(--circuit)}
+.mk{position:absolute;top:24px;transform:translateX(-50%);display:flex;flex-direction:column-reverse;align-items:center;font-size:11px;gap:3px;color:var(--sage60);white-space:nowrap;transition:left 600ms ease-out}
+.mk::after{content:"";width:1.5px;height:16px;background:currentColor}
+.mk.cur{top:0;flex-direction:column;color:var(--lime);font-weight:600}.mk.cur::after{width:2px;height:20px}
 .sig{display:grid;gap:8px;margin-top:12px;list-style:none;padding:0}
 .sig li{display:grid;grid-template-columns:8px 1fr;gap:10px;align-items:start;padding-top:8px;border-top:1px solid var(--hair);font-size:13px;line-height:1.38}
 .sig i{width:8px;height:8px;border-radius:50%;background:var(--deep);margin-top:5px}.sig i.ok{background:var(--ok)}.sig i.bad{background:var(--err)}
@@ -299,7 +299,7 @@ montarAuth();$('out').onclick=sair;
 let META=28;const MAX=50;
 const prods=[{n:'Carne bovina',u:'kg',c:32},{n:'Queijo',u:'kg',c:38},{n:'Pão de hambúrguer',u:'un',c:1.2},{n:'Refrigerante',u:'un',c:3}];
 const dd=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
-const closes=[['Seg',1200,90],['Ter',1450,110],['Qua',1300,80],['Qui',1700,150],['Sex',1500,120]].map(([d,c,l],i)=>({d,iso:dd(4-i),f:5000,c,l}));
+const closes=[['Seg',1200,90],['Ter',1450,110],['Qua',1300,80],['Qui',1700,150],['Sex',1500,120]].map(([d,c,l],i)=>({d,iso:dd(5-i),f:5000,c,l}));
 const SEEDF=[{n:'Hambúrguer da casa',categoria:'Hambúrgueres',preco:28,extra:.86,adicionais:[{n:'Bacon extra',p:5},{n:'Cheddar cremoso',p:4},{n:'Sem cebola',p:0}],itens:[{n:'Pão de hambúrguer',q:1},{n:'Carne bovina',q:.15},{n:'Queijo',q:.03}]},
 {n:'Cheeseburger duplo',categoria:'Hambúrgueres',preco:38,extra:1.1,adicionais:[{n:'Bacon extra',p:5},{n:'Borda recheada / Molho especial',p:6},{n:'Sem picles',p:0}],itens:[{n:'Pão de hambúrguer',q:1},{n:'Carne bovina',q:.3},{n:'Queijo',q:.06}]},
 {n:'Refrigerante lata',categoria:'Bebidas',preco:7,extra:0,adicionais:[{n:'Gelo e limão',p:0}],itens:[{n:'Refrigerante',q:1}]}];
@@ -389,9 +389,10 @@ const A={fech(){const ids=['fa','lo','ei','co','ef','te'],fc=$('fc');
   $('eC').textContent=ok||ids.every(i=>!$(i).value)?'':'Lance as vendas do dia em Vendas e preencha estoques e compras.';
   $('dv').textContent=ok&&!isNaN(te)?'Custo real vs teórico: diferença de '+brl(c-te)+'. É um sinal para investigar, não prova de desperdício.':'Margem bruta não é lucro líquido: ainda há salários, aluguel e impostos.';
   const b=$('fin');const can=ROLE!=='Operador',done=closes.some(x=>x.iso===today());b.disabled=!ok||b.dataset.done||!can||done;if(!can)b.textContent='Só gerente ou administrador fecha o dia';else if(done&&!b.dataset.done)b.textContent='Dia já fechado · reabra em Relatórios';b.onclick=()=>{closes.push({d:new Date().toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''),iso:today(),f:fa,c,ef,l:isNaN(lo)?0:lo});save();log('Fechou o dia com CMV de '+pc(c,fa));b.dataset.done=1;b.disabled=true;b.textContent='Dia fechado · Gerente (demo)';ids.forEach(i=>$(i).disabled=true)}};
- const fm=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}),set=(i,v)=>{if(v>0)$(i).value=fm(v)},lc=closes[closes.length-1];
- set('ei',lc&&lc.ef);set('co',sum(S.compras,'tot'));set('lo',sum(S.perdas,'val'));set('fa',sum(S.vendas,'fat'));set('te',sum(S.vendas,'cus'));if(S.movs.length)set('ef',estVal());
- $('fa').readOnly=true;fc.addEventListener('input',calc);fc.onsubmit=e=>e.preventDefault();calc()},
+ const fm=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}),set=(i,v)=>{if(v!==undefined&&v!==null&&!isNaN(v))$(i).value=fm(v)},lc=closes[closes.length-1];
+ const vFat=sum(S.vendas,'fat')||resumoHoje().fat||(lc?lc.f:0),vCus=sum(S.vendas,'cus')||(lc?lc.c:0),vEi=(lc&&lc.ef)||estVal()||4000,vCo=sum(S.compras,'tot'),vEf=S.movs.length?estVal():Math.max(0,vEi+vCo-vCus),vLo=sum(S.perdas,'val')||(lc?lc.l:0);
+ set('ei',vEi);set('co',vCo);set('lo',vLo);set('fa',vFat);set('te',vCus);set('ef',vEf);
+ $('fa').readOnly=sum(S.vendas,'fat')>0;fc.addEventListener('input',calc);fc.onsubmit=e=>e.preventDefault();calc()},
 prod(){$('fp').onsubmit=e=>{e.preventDefault();const n=$('pn').value.trim(),u=$('pu').value.trim(),c=num($('pcst').value);
  if(!n||!u||isNaN(c)||c<0){$('eP2').textContent='Informe nome, unidade e um custo válido.';return}prods.push({n,u,c});save();log('Cadastrou o insumo '+n);go('prod')}}};
 
