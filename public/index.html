@@ -156,34 +156,45 @@ a.link{text-decoration:none}
 .kan{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
 .kcol{background:rgba(10,11,16,.72);border:1px solid var(--hair);border-radius:var(--r);padding:12px;display:grid;gap:10px;align-content:start;min-height:110px}
 .pcard{background:rgba(16,18,26,.9);border:1px solid var(--hair);border-radius:var(--r);padding:12px;display:grid;gap:6px}.pcard b{color:var(--phos);font-weight:500}
-.phone{max-width:340px;margin:0 auto;border:1px solid rgba(212,106,76,.45);border-radius:22px;padding:18px 16px;background:#180f0c;color:#e6cfc4}
-.phone .eyebrow{color:var(--terra-soft)}.phone h3{color:#fff1e8}
+.phone{max-width:340px;margin:0 auto;border:1px solid #d1fae5;border-radius:22px;padding:18px 16px;background:#ffffff;color:#334155;box-shadow:0 10px 28px -6px rgba(34,197,94,.2)}
+.phone .eyebrow{color:#15803d}.phone h3{color:#0f172a}
 .mi{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--hair)}
 @media(max-width:1000px){.kan{grid-template-columns:1fr 1fr}}@media(max-width:600px){.kan{grid-template-columns:1fr}}
 
-/* Cardápio Digital (#cardapio) — Identidade Terracota Suave */
-#cv{position:fixed;inset:0;z-index:30;overflow:auto;background:radial-gradient(ellipse 80% 45% at 50% 0%,rgba(212,106,76,.14),transparent 65%),#140c09;color:#d6bfb4;padding-bottom:230px}
-.cvw{max-width:620px;margin:0 auto;padding:18px 16px}
-.cvh{display:flex;align-items:center;gap:14px;padding:12px 0 18px;border-bottom:1px solid #38231c}.cvh img{height:58px;width:58px;object-fit:cover;border-radius:12px;border:1px solid rgba(212,106,76,.4)}
-.cvh h1{font-size:26px;line-height:1.15;letter-spacing:-.3px;color:#fff2eb}.cvh p{color:#b69788;font-size:13.5px}
-#cv h2{font:500 11.5px/1.3 var(--inter);letter-spacing:.7px;text-transform:uppercase;color:var(--ac);margin:20px 0 8px}
-.cvi{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px;margin-bottom:8px;background:#201410;border:1px solid #38231c;border-radius:12px}
-.cvi-main{display:flex;gap:12px;flex:1;min-width:0}
-.cvi-img{width:68px;height:68px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid #4a2e25;background:#2c1c16}
-.cvi-ph{width:68px;height:68px;border-radius:10px;flex-shrink:0;border:1px solid #38231c;background:linear-gradient(135deg,#2a1913,#1d110d);display:grid;place-items:center;color:#d46a4c;font-size:22px}
-.cvi b{color:#fff2eb;font-weight:500;font-size:15px}.cvi p{margin:3px 0 0;font-size:13.5px}.cvi em{font-style:normal;color:#ffcab8;font-weight:600}
-.cvt{margin-left:6px;font-size:10.5px;padding:2px 8px;border-radius:9999px;background:var(--ac);color:#fff;font-weight:500}
-.cv-opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.cv-opt{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:9999px;font-size:11.5px;cursor:pointer;background:#2b1b15;border:1px solid #4d3026;color:#e6cfc4}
-.cv-opt.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:500}
+/* Cardápio Digital (#cardapio) — Fundo Branco Limpo, Sombras Verde Suave e Botões Verde Neon */
+#cv{position:fixed;inset:0;z-index:30;overflow:auto;background:#ffffff;color:#334155;padding-bottom:210px}
+.cvw{max-width:680px;margin:0 auto;padding:20px 18px}
+.cv-banner{width:100%;height:140px;border-radius:14px;overflow:hidden;border:1px dashed #86efac;background:linear-gradient(135deg,#f0fdf4,#f8fafc);display:grid;place-items:center;margin-bottom:16px;color:#166534;font-size:13px;font-weight:500;text-align:center}
+.cv-banner img{width:100%;height:100%;object-fit:cover;display:block}
+.cvh{display:flex;align-items:center;gap:14px;padding:8px 0 18px;border-bottom:1px solid #e2e8f0}.cvh img{height:58px;width:58px;object-fit:cover;border-radius:12px;border:1px solid #bbf7d0}
+.cvh h1{font-size:26px;line-height:1.15;letter-spacing:-.3px;color:#0f172a;font-weight:600}.cvh p{color:#475569;font-size:13.5px}
+#cv h2{font:600 12px/1.3 var(--inter);letter-spacing:.7px;text-transform:uppercase;color:#15803d;margin:22px 0 10px}
+.cvi{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:14px;margin-bottom:12px;background:#ffffff;border:1px solid #dcfce7;border-radius:14px;box-shadow:0 8px 24px -6px rgba(34,197,94,.16),0 2px 8px -2px rgba(127,238,100,.22)}
+.cvi-main{display:flex;gap:14px;flex:1;min-width:0}
+.cvi-img{width:76px;height:76px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid #dcfce7;background:#f8fafc}
+.cvi-ph{width:76px;height:76px;border-radius:10px;flex-shrink:0;border:1px dashed #bbf7d0;background:#f0fdf4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#15803d;font-size:11px;font-weight:500}
+.cvi b{color:#0f172a;font-weight:600;font-size:15.5px}.cvi p{margin:3px 0 0;font-size:14px}.cvi em{font-style:normal;color:#0f172a;font-weight:700}
+.cvt{margin-left:6px;font-size:10.5px;padding:2px 8px;border-radius:9999px;background:#7fee64;color:#052e16;font-weight:600}
+.cv-opts-lbl{font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin-top:8px}
+.cv-opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.cv-opt{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:9999px;font-size:12px;cursor:pointer;background:#f8fafc;border:1px solid #cbd5e1;color:#1e293b;font-weight:500}
+.cv-opt:hover{border-color:#4ade80;background:#f0fdf4}.cv-opt.on{background:#7fee64;border-color:#22c55e;color:#052e16;font-weight:600}
 .qty{display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:4px}
-.qty button{width:32px;height:32px;border-radius:50%;border:0;background:var(--ac);color:#fff;font-size:17px;font-weight:500;cursor:pointer;display:grid;place-items:center}
-.qty button:hover{filter:brightness(1.1)}.qty span{min-width:18px;text-align:center;color:#fff2eb;font-weight:500}
-.cvbar{position:fixed;left:0;right:0;bottom:0;background:#1e120e;border-top:1px solid #4d3026;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 24px rgba(0,0,0,.45)}
-.cvbar>div{max-width:620px;margin:0 auto;display:grid;gap:8px}
-.cvbar .input{background:#130b08;border-color:#4d3026;height:36px}.cvbar textarea{margin-top:0;height:54px;background:#130b08;border-color:#4d3026;color:#fff2eb;font-family:var(--inter);font-size:13px;padding:8px 10px}
-.cvb{height:42px;border-radius:9999px;border:0;background:var(--ac);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
-.cvb:hover{filter:brightness(1.08)}
+.qty .cv-add{height:36px;padding:0 16px;border-radius:9999px;border:0;background:#7fee64;color:#052e16;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(127,238,100,.35)}
+.qty .cv-add:hover{background:#6be550}
+.qty button.qbtn{width:32px;height:32px;border-radius:50%;border:0;background:#7fee64;color:#052e16;font-size:17px;font-weight:700;cursor:pointer;display:grid;place-items:center}
+.qty button.qbtn:hover{background:#6be550}.qty span{min-width:18px;text-align:center;color:#0f172a;font-weight:700}
+.cv-notes{margin-top:18px;padding:14px;background:#ffffff;border:1px solid #dcfce7;border-radius:14px;box-shadow:0 6px 20px -6px rgba(34,197,94,.14)}
+.cv-notes label{display:grid;gap:6px;font-size:12.5px;font-weight:600;color:#0f172a}
+.cv-notes textarea{margin-top:0;height:68px;background:#f8fafc;border:1px solid #cbd5e1;color:#0f172a;font-family:var(--inter);font-size:13px;padding:10px 12px;border-radius:10px}
+.cv-notes textarea::placeholder{color:#64748b}
+.cv-foot{margin-top:24px;padding-top:14px;border-top:1px solid #e2e8f0;text-align:center;font-size:12px;color:#64748b}
+.cv-foot strong{color:#0f172a;font-weight:700}
+.cvbar{position:fixed;left:0;right:0;bottom:0;background:#ffffff;border-top:1px solid #dcfce7;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 28px rgba(15,23,42,.08)}
+.cvbar>div{max-width:680px;margin:0 auto;display:grid;gap:8px}
+.cvbar .input{background:#f8fafc;border-color:#cbd5e1;color:#0f172a;height:38px}.cvbar .input input{color:#0f172a}.cvbar .input input::placeholder{color:#64748b}
+.cvb{height:44px;border-radius:9999px;border:0;background:#7fee64;color:#052e16;font-weight:700;cursor:pointer;font-size:14.5px;box-shadow:0 4px 14px rgba(127,238,100,.35)}
+.cvb:hover{background:#6be550}
 .cvx{position:fixed;top:12px;right:12px;z-index:31}
 #pimg{width:100%;height:auto;border-radius:var(--r);border:1px solid var(--circuit);display:block}
 
@@ -599,7 +610,7 @@ ped(){const r=resumoHoje(),col=st=>S.pedidos.filter(p=>p.status===st&&(st!=='ent
  <div id="fped" hidden><section class="cell"><h3 style="margin-bottom:16px">Novo pedido</h3><form id="f" novalidate style="display:grid;gap:20px"><div class="row" style="gap:16px;align-items:flex-end">${fl('Cliente','<input id="s1" placeholder="Maria Souza">','2')}${fl('WhatsApp','<input id="s2" inputmode="tel" placeholder="(83) 99999-0000">')}${fl('Canal',sel('s3','<option>Balcão</option><option>Delivery</option><option>WhatsApp</option><option>Mesa</option>'))}${fl('Pagamento',sel('s4','<option>Pix</option><option>Cartão</option><option>Dinheiro</option>'))}</div><div class="row" style="gap:16px;align-items:flex-end">${fl('Produto',sel('s5',ativos().map(f=>`<option>${f.n}</option>`).join('')),'2')}${fl('Quantidade',ip('s6','2'))}<button class="btn" type="button" id="ai">Adicionar item</button></div><div class="soon" id="pd"></div><span class="err" id="fe"></span><button class="btn accent" type="submit" style="justify-self:start">Registrar pedido</button></form></section></div>`},
 car(){const cats=[...new Set(S.fichas.map(f=>f.categoria))],falta=f=>S.movs.length>0&&f.itens.some(i=>saldo(i.n)<i.q),at=ativos();
  return hd('Vitrine','Cardápio digital','Escolha o que aparece para o cliente. Produtos sem estoque são sinalizados.')+`<div class="split"><section class="cell"><h3>Produtos</h3>${cats.map(c=>`<div class="eyebrow" style="margin-top:20px">${c}</div>`+S.fichas.map((f,k)=>({f,k})).filter(x=>x.f.categoria===c).map(({f,k})=>`<div class="mi"><div><span style="color:var(--phos)">${f.n}</span><br><span class="muted">${f.preco?brl(f.preco)+' · margem '+p1(mg(f).p):'defina o preço em Produtos'}</span></div><div class="row" style="gap:8px">${falta(f)?'<span class="tag bad">Sem estoque</span>':''}<button class="tag ${f.ativo!==false?'ok':''}" style="cursor:pointer" onclick="togAtivo(${k})">${f.ativo!==false?'Disponível':'Esgotado'}</button></div></div>`).join('')).join('')}</section>
- <aside><div class="phone"><div class="eyebrow">Cardápio digital</div>${S.marca.logo?'<img src="'+S.marca.logo+'" alt="" style="height:40px;width:auto;border-radius:8px;display:block;margin:8px 0">':''}<h3 style="margin:4px 0 8px">${esc(S.marca.nome||S.estab)}</h3>${[...new Set(at.map(f=>f.categoria))].map(c=>`<div class="eyebrow" style="margin-top:12px">${c}</div>`+at.filter(f=>f.categoria===c).map(f=>`<div class="mi" style="border-color:#38231c"><span style="color:#fff2eb">${f.n}</span><span>${f.promo?'<s class="muted">'+brl(f.preco)+'</s> ':''}${brl(f.promo||f.preco)}</span></div>`).join('')).join('')||'<p class="muted">Nenhum produto disponível.</p>'}<button class="btn terra block" style="margin-top:14px" disabled>Fazer pedido</button></div>
+ <aside><div class="phone"><div class="eyebrow">Cardápio digital</div>${S.marca.logo?'<img src="'+S.marca.logo+'" alt="" style="height:40px;width:auto;border-radius:8px;display:block;margin:8px 0">':''}<h3 style="margin:4px 0 8px">${esc(S.marca.nome||S.estab)}</h3>${[...new Set(at.map(f=>f.categoria))].map(c=>`<div class="eyebrow" style="margin-top:12px">${c}</div>`+at.filter(f=>f.categoria===c).map(f=>`<div class="mi" style="border-color:#e2e8f0"><span style="color:#0f172a;font-weight:500">${f.n}</span><span style="color:#0f172a;font-weight:600">${f.promo?'<s class="muted">'+brl(f.preco)+'</s> ':''}${brl(f.promo||f.preco)}</span></div>`).join('')).join('')||'<p class="muted">Nenhum produto disponível.</p>'}<button class="btn accent block" style="margin-top:14px" disabled>Fazer pedido</button></div>
  <p class="muted" style="text-align:center;margin-top:12px">Pré-visualização do que o cliente veria.</p></aside></div>`},
 cli(){const m={};S.pedidos.filter(p=>p.status!=='cancelado').forEach(p=>{const k=(p.tel||'').replace(/\D/g,'')||p.cliente,c=m[k]=m[k]||{nome:p.cliente,tel:p.tel||'',n:0,tot:0,ult:'',fav:{}};c.n++;c.tot+=p.total;if(p.iso>c.ult)c.ult=p.iso;p.itens.forEach(i=>c.fav[i.n]=(c.fav[i.n]||0)+i.q)});
  const L=Object.values(m).map(c=>({...c,dias:Math.round((Date.parse(today())-Date.parse(c.ult))/864e5),fav:(Object.entries(c.fav).sort((a,b)=>b[1]-a[1])[0]||[''])[0]})).sort((a,b)=>b.dias-a.dias),rec=L.filter(c=>c.dias>=15).length;
@@ -620,39 +631,44 @@ Object.assign(A,{ped(){PD=[];
 
 /* Marca do restaurante, cardápio do cliente e criador de promoções */
 const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-S.marca=S.marca||{nome:'',slogan:'',zap:'',cor:'#d46a4c',logo:''};
-if(!S.marca.cor||S.marca.cor==='#7fee64')S.marca.cor='#d46a4c';
+S.marca=S.marca||{nome:'',slogan:'',zap:'',cor:'#7fee64',logo:'',banner:''};
 const TITULO='StockPulse — Gestão e CMV Diário',waUrl=(z,t)=>{const d=(z||'').replace(/\D/g,'');return d.length<10?'':'https://wa.me/'+(d.length<=11?'55'+d:d)+'?text='+encodeURIComponent(t)};
-let CART={},CART_OPTS={},CVMSG='',PROMO=null;
+let CART={},CART_OPTS={},CVMSG='',CVOBS='',PROMO=null;
 const cvAdicTot=k=>(CART_OPTS[k]||[]).reduce((s,idx)=>{const a=(S.fichas[k].adicionais||[])[idx];return s+(a?a.p:0)},0);
-function togCvOpt(k,idx){const a=CART_OPTS[k]=CART_OPTS[k]||[],p=a.indexOf(idx);p>=0?a.splice(p,1):a.push(idx);const y=$('cv').scrollTop;renderCV();$('cv').scrollTop=y}
+function togCvOpt(k,idx){const a=CART_OPTS[k]=CART_OPTS[k]||[],p=a.indexOf(idx);p>=0?a.splice(p,1):a.push(idx);if($('cobs'))CVOBS=$('cobs').value;const y=$('cv').scrollTop;renderCV();$('cv').scrollTop=y}
 function renderCV(){const m=S.marca,nome=esc(m.nome||S.estab),at=ativos(),cats=[...new Set(at.map(f=>f.categoria))],n=Object.values(CART).reduce((a,b)=>a+b,0),
  tot=Object.entries(CART).reduce((t,[k,q])=>t+q*((S.fichas[k].promo||S.fichas[k].preco)+cvAdicTot(k)),0);document.title=m.nome||S.estab;
- $('cv').style.setProperty('--ac',m.cor||'#d46a4c');
- $('cv').innerHTML=(!$('app').hidden?'<button class="btn terra sm cvx" onclick="fecharCliente()">Fechar visualização</button>':'')+`<div class="cvw"><header class="cvh">${m.logo?`<img src="${m.logo}" alt="${nome}">`:''}<div><h1>${nome}</h1><p>${esc(m.slogan)}</p></div></header>${CVMSG?`<p style="margin-top:14px;padding:10px 14px;border-radius:10px;background:#261712;border:1px solid var(--ac);color:#fff2eb">${CVMSG}</p>`:''}
- ${cats.map(c=>`<h2>${esc(c)}</h2>`+at.filter(f=>f.categoria===c).map(f=>{const k=S.fichas.indexOf(f),selOpts=CART_OPTS[k]||[],unit=(f.promo||f.preco)+cvAdicTot(k),ads=f.adicionais||[];
-  return `<div class="cvi"><div class="cvi-main">${f.foto?`<img class="cvi-img" src="${f.foto}" alt="${esc(f.n)}">`:`<div class="cvi-ph" aria-hidden="true">🍽</div>`}<div style="min-width:0;flex:1"><b>${esc(f.n)}</b>${f.promo?'<span class="cvt">Promoção</span>':''}<p>${f.promo?'<s style="color:#8f7265">'+brl(f.preco)+'</s> ':''}<em>${brl(unit)}</em></p>${ads.length?`<div class="cv-opts">${ads.map((a,idx)=>`<button type="button" class="cv-opt ${selOpts.includes(idx)?'on':''}" onclick="togCvOpt(${k},${idx})">${selOpts.includes(idx)?'✓ ':'+ '}${esc(a.n)}${a.p?' (+'+brl(a.p)+')':''}</button>`).join('')}</div>`:''}</div></div><div class="qty"><button type="button" aria-label="Tirar" onclick="cvq(${k},-1)">−</button><span>${CART[k]||0}</span><button type="button" aria-label="Adicionar" onclick="cvq(${k},1)">+</button></div></div>`}).join('')).join('')||'<p style="padding:32px 0">Cardápio indisponível no momento.</p>'}</div>
- ${n?`<div class="cvbar"><div><div class="row"><span style="color:#fff2eb">${n} ${n>1?'itens':'item'}</span><b style="color:#fff2eb;font-size:17px">${brl(tot)}</b></div><div class="two" style="gap:8px"><div class="input"><input id="cn" placeholder="Seu nome"></div><div class="input"><input id="ct" inputmode="tel" placeholder="Seu WhatsApp"></div></div><textarea id="cobs" placeholder="Observações e restrições alimentares (ex: sem glúten, alergia a lactose, ponto da carne, tirar cebola)..."></textarea><span class="err" id="ce"></span><button class="cvb" onclick="cvEnviar()">Enviar pedido · ${brl(tot)}</button></div></div>`:''}`;CVMSG=''}
-function cvq(k,d){CART[k]=Math.max(0,(CART[k]||0)+d);const y=$('cv').scrollTop;renderCV();$('cv').scrollTop=y}
-function cvEnviar(){const nome=$('cn').value.trim(),tel=$('ct').value.trim(),obs=($('cobs')?$('cobs').value:'').trim(),it=Object.entries(CART).filter(([k,q])=>q>0).map(([k,q])=>{const f=S.fichas[k],ads=(CART_OPTS[k]||[]).map(i=>(f.adicionais||[])[i]).filter(Boolean);return{n:f.n+(ads.length?' ('+ads.map(a=>a.n).join(', ')+')':''),q,preco:(f.promo||f.preco)+cvAdicTot(k)}});
+ $('cv').style.setProperty('--ac',m.cor||'#7fee64');
+ $('cv').innerHTML=(!$('app').hidden?'<button class="btn accent sm cvx" onclick="fecharCliente()">Fechar visualização</button>':'')+`<div class="cvw">
+ <div class="cv-banner">${m.banner?`<img src="${m.banner}" alt="Banner ${nome}">`:'<span>Banner do restaurante · 1200×360 px</span>'}</div>
+ <header class="cvh">${m.logo?`<img src="${m.logo}" alt="${nome}">`:''}<div><h1>${nome}</h1><p>${esc(m.slogan||'Cardápio digital com personalização')}</p></div></header>${CVMSG?`<p style="margin-top:14px;padding:10px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #22c55e;color:#052e16;font-weight:500">${CVMSG}</p>`:''}
+ ${cats.map(c=>`<h2>${esc(c)}</h2>`+at.filter(f=>f.categoria===c).map(f=>{const k=S.fichas.indexOf(f),q=CART[k]||0,selOpts=CART_OPTS[k]||[],unit=(f.promo||f.preco)+cvAdicTot(k),ads=f.adicionais||[];
+  return `<div class="cvi"><div class="cvi-main">${f.foto?`<img class="cvi-img" src="${f.foto}" alt="${esc(f.n)}">`:`<div class="cvi-ph" aria-hidden="true"><span style="font-size:18px">🍽</span><span>Foto</span></div>`}<div style="min-width:0;flex:1"><b>${esc(f.n)}</b>${f.promo?'<span class="cvt">Promoção</span>':''}<p>${f.promo?'<s style="color:#64748b">'+brl(f.preco)+'</s> ':''}<em>${brl(unit)}</em></p><div class="cv-opts-lbl">Personalização e adicionais</div><div class="cv-opts">${ads.length?ads.map((a,idx)=>`<button type="button" class="cv-opt ${selOpts.includes(idx)?'on':''}" onclick="togCvOpt(${k},${idx})">${selOpts.includes(idx)?'✓ ':'+ '}${esc(a.n)}${a.p?' (+'+brl(a.p)+')':''}</button>`).join(''):'<span class="muted" style="font-size:12px">Sem adicionais para este item</span>'}</div></div></div><div class="qty">${q?`<button type="button" class="qbtn" aria-label="Tirar" onclick="cvq(${k},-1)">−</button><span>${q}</span><button type="button" class="qbtn" aria-label="Adicionar" onclick="cvq(${k},1)">+</button>`:`<button type="button" class="cv-add" onclick="cvq(${k},1)">Adicionar</button>`}</div></div>`}).join('')).join('')||'<p style="padding:32px 0">Cardápio indisponível no momento.</p>'}
+ <div class="cv-notes"><label for="cobs">Observações e restrições alimentares<textarea id="cobs" oninput="CVOBS=this.value" placeholder="Ex.: sem glúten, alergia a lactose, ponto da carne, tirar cebola...">${esc(CVOBS)}</textarea></label></div>
+ <footer class="cv-foot">Cardápio digital · <strong>StockPulse</strong></footer></div>
+ ${n?`<div class="cvbar"><div><div class="row"><span style="color:#0f172a;font-weight:500">${n} ${n>1?'itens':'item'}</span><b style="color:#0f172a;font-size:17px">${brl(tot)}</b></div><div class="two" style="gap:8px"><div class="input"><input id="cn" placeholder="Seu nome"></div><div class="input"><input id="ct" inputmode="tel" placeholder="Seu WhatsApp"></div></div><span class="err" id="ce"></span><button class="cvb" onclick="cvEnviar()">Enviar pedido · ${brl(tot)}</button></div></div>`:''}`;CVMSG=''}
+function cvq(k,d){if($('cobs'))CVOBS=$('cobs').value;CART[k]=Math.max(0,(CART[k]||0)+d);const y=$('cv').scrollTop;renderCV();$('cv').scrollTop=y}
+function cvEnviar(){const nome=$('cn').value.trim(),tel=$('ct').value.trim(),obs=(($('cobs')?$('cobs').value:CVOBS)||'').trim(),it=Object.entries(CART).filter(([k,q])=>q>0).map(([k,q])=>{const f=S.fichas[k],ads=(CART_OPTS[k]||[]).map(i=>(f.adicionais||[])[i]).filter(Boolean);return{n:f.n+(ads.length?' ('+ads.map(a=>a.n).join(', ')+')':''),q,preco:(f.promo||f.preco)+cvAdicTot(k)}});
  if(!nome||!it.length){$('ce').textContent='Informe seu nome e escolha ao menos um item.';return}
  const total=it.reduce((t,i)=>t+i.q*i.preco,0);S.pedidos.push({id:S.pedidos.reduce((m,p)=>Math.max(m,p.id),0)+1,iso:today(),hora:new Date().toTimeString().slice(0,5),cliente:nome,tel,obs,canal:'Cardápio',itens:it,total,status:'novo',pag:'A combinar'});save();checkNovos();
  const u=waUrl(S.marca.zap,`Olá, ${S.marca.nome||S.estab}! Meu pedido:\n`+it.map(i=>`${i.q}× ${i.n}`).join('\n')+(obs?`\nObs/Restrições: ${obs}`:'')+`\nTotal: ${brl(total)}\nNome: ${nome}`);
- CART={};CART_OPTS={};CVMSG='Pedido enviado! Já estamos preparando a confirmação.';renderCV();if(u)window.open(u,'_blank')}
+ CART={};CART_OPTS={};CVOBS='';CVMSG='Pedido enviado! Já estamos preparando a confirmação.';renderCV();if(u)window.open(u,'_blank')}
 function abrirCliente(){renderCV();$('cv').hidden=false;if(location.hash!=='#cardapio')location.hash='cardapio'}
 function fecharCliente(){$('cv').hidden=true;document.title=TITULO;history.replaceState(null,'',location.pathname+location.search);if($('app').hidden)$('auth').hidden=false}
 addEventListener('hashchange',()=>{if(location.hash==='#cardapio'){renderCV();$('cv').hidden=false}else{$('cv').hidden=true;document.title=TITULO}});
 if(location.hash==='#cardapio'){$('auth').hidden=true;renderCV();$('cv').hidden=false}
-{const _v=V.car;V.car=()=>_v().replace('<div class="split">',`<div class="row" style="justify-content:flex-start;gap:10px;margin-bottom:12px"><button class="btn terra sm" onclick="abrirCliente()">Abrir cardápio do cliente</button><button class="btn sm" id="cl">Copiar link do cardápio</button></div><div class="split">`)}
+{const _v=V.car;V.car=()=>_v().replace('<div class="split">',`<div class="row" style="justify-content:flex-start;gap:10px;margin-bottom:12px"><button class="btn accent sm" onclick="abrirCliente()">Abrir cardápio do cliente</button><button class="btn sm" id="cl">Copiar link do cardápio</button></div><div class="split">`)}
 {const _a=A.car;A.car=()=>{if(_a)_a();$('cl').onclick=async()=>{const u=location.href.split('#')[0]+'#cardapio';try{await navigator.clipboard.writeText(u);$('cl').textContent='Link copiado!'}catch(e){$('cl').textContent=u}}}}
-const marcaCard=()=>{const m=S.marca;return `<section class="cell c6"><h3>Marca do cardápio digital</h3><p class="muted">Seus clientes veem apenas a sua marca. Nenhum logo do StockPulse aparece no cardápio.</p><div style="display:grid;gap:12px;margin-top:12px">
+const marcaCard=()=>{const m=S.marca;return `<section class="cell c6"><h3>Marca do cardápio digital</h3><p class="muted">Configure identidade, logo e banner exibidos no cardápio do cliente.</p><div style="display:grid;gap:12px;margin-top:12px">
  ${fl('Nome do delivery','<input id="mn" value="'+esc(m.nome||S.estab)+'">')}${fl('Slogan','<input id="ms" value="'+esc(m.slogan)+'" placeholder="O melhor smash da cidade">')}${fl('WhatsApp para pedidos','<input id="mz" inputmode="tel" value="'+esc(m.zap)+'" placeholder="(83) 99999-0000">')}
- <div class="two" style="gap:10px;align-items:end">${fl('Cor da marca (terracota)',`<input id="mc" type="color" value="${m.cor||'#d46a4c'}" style="width:100%;height:100%;background:none;border:0">`)}${fl('Logo (PNG ou JPG)','<input id="ml" type="file" accept="image/*">')}</div>
- ${m.logo?'<img src="'+m.logo+'" alt="Logo atual" style="height:48px;width:auto;border-radius:8px">':''}<button class="btn terra" id="mb" type="button" style="justify-self:start">Salvar marca</button></div></section>`};
+ <div class="two" style="gap:10px;align-items:end">${fl('Cor da marca',`<input id="mc" type="color" value="${m.cor||'#7fee64'}" style="width:100%;height:100%;background:none;border:0">`)}${fl('Logo (PNG ou JPG)','<input id="ml" type="file" accept="image/*">')}</div>
+ ${fl('Banner do topo (1200×360)','<input id="mbn" type="file" accept="image/*">')}
+ ${m.logo?'<img src="'+m.logo+'" alt="Logo atual" style="height:48px;width:auto;border-radius:8px">':''}<button class="btn accent" id="mb" type="button" style="justify-self:start">Salvar marca</button></div></section>`};
 const lerImg=f=>new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const i=new Image();i.onerror=no;i.onload=()=>ok(i);i.src=r.result};r.readAsDataURL(f)});
 {const _c=V.cfg;V.cfg=()=>{const h=_c(),j=h.lastIndexOf('</div>');return h.slice(0,j)+marcaCard()+h.slice(j)}}
 {const _a=A.cfg;A.cfg=()=>{_a();$('mb').onclick=async()=>{const m=S.marca;m.nome=$('mn').value.trim();m.slogan=$('ms').value.trim();m.zap=$('mz').value.trim();m.cor=$('mc').value;
  const f=$('ml').files[0];if(f){try{const i=await lerImg(f),k=Math.min(1,256/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);m.logo=c.toDataURL('image/png')}catch(e){}}
+ const fb=$('mbn')&&$('mbn').files[0];if(fb){try{const i=await lerImg(fb),k=Math.min(1,1200/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);m.banner=c.toDataURL('image/jpeg',.82)}catch(e){}}
  log('Atualizou a marca do cardápio');save();keep(()=>{})}}}
 Object.assign(V,{promo(){const lst=S.fichas.map((f,k)=>({f,k})).filter(x=>x.f.promo);
  return hd('Marketing','Promoções','Crie a arte da promoção com a sua marca e aplique o preço no cardápio digital, vendo antes o impacto na margem.')+`<div class="split"><section class="cell"><h3>Nova promoção</h3><form id="f" novalidate style="display:grid;gap:20px;margin-top:16px">
